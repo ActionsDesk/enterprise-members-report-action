@@ -1,11 +1,13 @@
 {
-    "name": "ps-typescript-action",
+    "name": "email-license-report-action",
     "version": "1.0.0",
-    "description": "TypeScript template action",
+    "description": "Generates and sends an email to a list of email addresses with the report of users in an enterprise",
     "keywords": [
         "actions",
-        "node",
-        "setup"
+        "email",
+        "typescript",
+        "report",
+        "license"
     ],
     "author": {
         "name": "GitHub Professional Services",
@@ -14,18 +16,18 @@
     },
     "contributors": [
         {
-            "name": "Hubber name",
-            "email": "hubber@github.com",
-            "url": "https://github.com/hubber"
+            "name": "Javier de Pedro López",
+            "email": "droidpl@github.com",
+            "url": "https://github.com/droidpl"
         }
     ],
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/ActionsDest/ps-typescript-action.git"
+        "url": "git+https://github.com/ActionsDest/email-license-report-action.git"
     },
     "bugs": {
-        "url": "https://github.com/ActionsDest/ps-typescript-action/issues"
+        "url": "https://github.com/ActionsDest/email-license-report-action/issues"
     },
     "publishConfig": {
         "registry": "https://npm.pkg.github.com/"
@@ -46,7 +48,8 @@
     },
     "dependencies": {
         "@actions/core": "^1.2.6",
-        "@actions/github": "^5.0.0"
+        "@actions/github": "^5.0.0",
+        "@octokit/rest": "^18.5.5"
     },
     "devDependencies": {
         "typescript": "^4.3.2",

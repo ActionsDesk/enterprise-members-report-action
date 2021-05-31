@@ -1,11 +1,30 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'email-license-report-action'
+description: 'Generates and sends an email to a list of email addresses with the report of users in an enterprise'
+author: 'GitHub'
 inputs:
-  milliseconds: # change this
+  token:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'A personal access token with permissions on all the orgs of the enterprise'
+  enterprise:
+    required: true
+    description: 'The enterprise where we want to generate the report'
+  emails:
+    required: true
+    description: 'The emails, comma separated, where the report will be sent'
+  smtp_host:
+    required: true
+    description: 'The host of the smtp server'
+  smtp_port:
+    required: true
+    description: 'The port of the smtp server'
+  sender:
+    required: false
+    description: 'The name of the sender'
+    default: GitHub
+  subject:
+    required: false
+    description: 'The name of the email subject'
+    default: GitHub Report
 runs:
   using: 'node12'
   main: 'dist/index.js'

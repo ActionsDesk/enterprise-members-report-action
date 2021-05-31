@@ -1,16 +1,27 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import {ActionParams} from './types'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
-
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    core.setOutput('time', new Date().toTimeString())
+    const token: string = core.getInput('token', { required: true })
+    const enterprise: string = core.getInput('enterprise', { required: true })
+    const emails: string[] = core.getInput('emails', { required: true }).split(',')
+    const smtp_host: string = core.getInput('smtp_host', { required: true })
+    const smtp_port: string = core.getInput('smtp_port', { required: true })
+    const sender: string = core.getInput('sender')
+    const subject: string = core.getInput('subject')
+   
+    const params: ActionParams = {
+      token,
+      enterprise,
+      emails,
+      smtp_host,
+      smtp_port,
+      sender,
+      subject
+    }
+    core.debug(`Params used: ${JSON.stringify(params)}`)
+    
   } catch (error) {
     core.setFailed(error.message)
   }
