@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "sourceMaps": true,
+      "console": "internalConsole",
+      "program": "${workspaceFolder}/src/local.ts",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+    }
+  ]
+}
