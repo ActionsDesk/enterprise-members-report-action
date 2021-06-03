@@ -14,11 +14,13 @@
         "email": "services@github.com",
         "url": "https://services.github.com"
     },
-    "contributors": [{
-        "name": "Javier de Pedro López",
-        "email": "droidpl@github.com",
-        "url": "https://github.com/droidpl"
-    }],
+    "contributors": [
+        {
+            "name": "Javier de Pedro López",
+            "email": "droidpl@github.com",
+            "url": "https://github.com/droidpl"
+        }
+    ],
     "license": "MIT",
     "repository": {
         "type": "git",
@@ -47,13 +49,18 @@
     "dependencies": {
         "@actions/core": "^1.2.6",
         "@actions/github": "^5.0.0",
-        "@octokit/rest": "^18.5.5",
-        "markdown-table": "^3.0.0"
+        "@octokit/rest": "^18.5.6",
+        "markdown-table-ts": "^1.0.3",
+        "marked": "^2.0.7",
+        "nodemailer": "^6.6.1"
     },
     "devDependencies": {
         "@github/prettier-config": "^0.0.4",
+        "@octokit/types": "^6.16.2",
         "@types/jest": "^26.0.23",
+        "@types/marked": "^2.0.3",
         "@types/node": "^15.6.1",
+        "@types/nodemailer": "^6.4.2",
         "@typescript-eslint/parser": "^4.25.0",
         "@vercel/ncc": "^0.28.6",
         "eslint": "^7.17.0",

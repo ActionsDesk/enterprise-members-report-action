@@ -1,7 +1,7 @@
 export type EmailParams = {
-  emails: string[]
+  emails: string
   smtp_host: string
-  smtp_port: string
+  smtp_port: number
   sender: string
   subject: string
 }
@@ -24,6 +24,7 @@ export type PendingInvite = {
   created_at: string
 }
 
+// eslint-disable-next-line no-shadow
 export enum Membership {
   MEMBER = 'member',
   OUTSISE_COLLABORATOR = 'outside collaborator'
@@ -64,11 +65,18 @@ export type GetMembersResponse = {
   }
 }
 
+export type OutsideCollaboratorRepository = {
+  name: string
+  nameWithOwner: string
+}
+
 export type OutsideCollaborator = {
-  login: string
-  email: string
-  organizations: {
-    nodes: OrgLogin[]
+  repositories: {
+    nodes: OutsideCollaboratorRepository[]
+  }
+  node: {
+    login: string
+    email: string
   }
 }
 export type GetOutsideCollaborators = {
@@ -76,7 +84,7 @@ export type GetOutsideCollaborators = {
     ownerInfo: {
       outsideCollaborators: {
         pageInfo: PageInfo
-        nodes: OutsideCollaborator[]
+        edges: OutsideCollaborator[]
       }
     }
   }

@@ -1,14 +1,8 @@
-import * as rest from '@octokit/rest'
-import {
-  GetOrgsResponse,
-  PendingInvite,
-  OrgMember,
-  GetMembersResponse,
-  Membership,
-  GetOutsideCollaborators
-} from '../types'
+import type {Octokit} from '@octokit/rest'
+import type {GetOrgsResponse, PendingInvite, OrgMember, GetMembersResponse, GetOutsideCollaborators} from '../types'
+import {Membership} from '../types'
 
-export async function getOrgsForEnterprise(enterprise: string, octokit: rest.Octokit): Promise<string[]> {
+export async function getOrgsForEnterprise(enterprise: string, octokit: Octokit): Promise<string[]> {
   let lastPage: string | null | undefined = null
   let hasNextPage = true
   const orgs: string[] = []
@@ -44,7 +38,7 @@ export async function getOrgsForEnterprise(enterprise: string, octokit: rest.Oct
   return orgs
 }
 
-export async function getPendingInvitesFromOrgs(orgs: string[], octokit: rest.Octokit): Promise<PendingInvite[]> {
+export async function getPendingInvitesFromOrgs(orgs: string[], octokit: Octokit): Promise<PendingInvite[]> {
   const pendingInvites: PendingInvite[] = []
   for (const org of orgs) {
     const response = await octokit.paginate(octokit.rest.orgs.listPendingInvitations, {
@@ -63,7 +57,7 @@ export async function getPendingInvitesFromOrgs(orgs: string[], octokit: rest.Oc
   return pendingInvites.sort((a, b) => a.created_at.localeCompare(b.created_at))
 }
 
-export async function getMembersFromOrgs(orgs: string[], octokit: rest.Octokit): Promise<OrgMember[]> {
+export async function getMembersFromOrgs(orgs: string[], octokit: Octokit): Promise<OrgMember[]> {
   const members: Map<string, OrgMember> = new Map()
   for (const org of orgs) {
     let lastPage: string | null | undefined
@@ -79,7 +73,7 @@ export async function getMembersFromOrgs(orgs: string[], octokit: rest.Octokit):
                         }
                         nodes {
                           login
-                          email: organizationVerifiedDomainEmails(login: $org)
+                          emails: organizationVerifiedDomainEmails(login: $org)
                         }
                       }
                     }
@@ -113,7 +107,7 @@ export async function getMembersFromOrgs(orgs: string[], octokit: rest.Octokit):
   return Array.from(members.values())
 }
 
-export async function getOutsideCollaborators(enterprise: string, octokit: rest.Octokit): Promise<OrgMember[]> {
+export async function getOutsideCollaborators(enterprise: string, octokit: Octokit): Promise<OrgMember[]> {
   const collaborators: OrgMember[] = []
   let lastPage: string | null | undefined = null
   let hasNextPage = true
@@ -127,13 +121,16 @@ export async function getOutsideCollaborators(enterprise: string, octokit: rest.
                 endCursor
                 hasNextPage
               }
-              nodes {
-                login
-                email
-                organizations(first: 100) {
+              edges {
+                repositories(first: 100) {
                   nodes {
-                    login
+                    name
+                    nameWithOwner
                   }
+                }
+                node {
+                  login
+                  email
                 }
               }
             }
@@ -149,11 +146,13 @@ export async function getOutsideCollaborators(enterprise: string, octokit: rest.
     hasNextPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.hasNextPage
     lastPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.endCursor
 
-    const members: OrgMember[] = response.enterprise.ownerInfo.outsideCollaborators.nodes.map(item => {
+    const members: OrgMember[] = response.enterprise.ownerInfo.outsideCollaborators.edges.map(item => {
+      // Get the unique set of owners from the name of the repos
+      const orgs: string[] = Array.from(new Set(item.repositories.nodes.map(node => node.nameWithOwner.split('/')[0])))
       return {
-        orgs: item.organizations.nodes.map(org => org.login),
-        login: item.login,
-        emails: [item.email],
+        orgs,
+        login: item.node.login,
+        emails: [item.node.email],
         type: Membership.OUTSISE_COLLABORATOR
       }
     })
@@ -163,7 +162,7 @@ export async function getOutsideCollaborators(enterprise: string, octokit: rest.
   return collaborators
 }
 
-export async function getOutsideCollaborator(orgs: string[], octokit: rest.Octokit): Promise<OrgMember[]> {
+export async function getOutsideCollaborator(orgs: string[], octokit: Octokit): Promise<OrgMember[]> {
   const collaborators: Map<string, OrgMember> = new Map()
   for (const org of orgs) {
     const data = await octokit.paginate(octokit.rest.orgs.listOutsideCollaborators, {
