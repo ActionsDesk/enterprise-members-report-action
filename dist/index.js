@@ -8201,7 +8201,7 @@ async function run() {
         const token = core.getInput('token', { required: true });
         const enterprise = core.getInput('enterprise', { required: true });
         const formatString = core.getInput('format', { required: true });
-        const format = OutputFormat[formatString];
+        const format = OutputFormat[formatString.toUpperCase()];
         if (!format) {
             throw new Error(`Invalid format: ${formatString}`);
         }
