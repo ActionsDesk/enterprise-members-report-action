@@ -15,5 +15,5 @@ outputs:
   data: 
     description: 'The data extracted from the license API calls in the format specified. The type of the output is always string'
 runs:
-  using: 'node14'
+  using: 'node12'
   main: 'dist/index.js'

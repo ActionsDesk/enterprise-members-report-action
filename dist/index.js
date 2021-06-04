@@ -1,520 +1,6 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 17:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getOutsideCollaborator = exports.getOutsideCollaborators = exports.getMembersFromOrgs = exports.getPendingInvitesFromOrgs = exports.getOrgsForEnterprise = void 0;
-var types_1 = __nccwpck_require__(164);
-function getOrgsForEnterprise(enterprise, octokit) {
-    return __awaiter(this, void 0, void 0, function () {
-        var lastPage, hasNextPage, orgs, response, orgsData, _i, _a, org;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
-                case 0:
-                    lastPage = null;
-                    hasNextPage = true;
-                    orgs = [];
-                    _b.label = 1;
-                case 1:
-                    if (!hasNextPage) return [3 /*break*/, 3];
-                    return [4 /*yield*/, octokit.graphql("query($enterprise: String!, $page: String) {\n        enterprise(slug: $enterprise) {\n          organizations(first: 100, after: $page) {\n            pageInfo {\n              hasNextPage\n              endCursor\n            }\n            nodes {\n              login\n            }\n          }\n        }\n      }\n    ", {
-                            enterprise: enterprise,
-                            page: lastPage
-                        })];
-                case 2:
-                    response = _b.sent();
-                    orgsData = response.enterprise.organizations;
-                    lastPage = orgsData.pageInfo.endCursor;
-                    hasNextPage = orgsData.pageInfo.hasNextPage;
-                    for (_i = 0, _a = orgsData.nodes; _i < _a.length; _i++) {
-                        org = _a[_i];
-                        orgs.push(org.login);
-                    }
-                    return [3 /*break*/, 1];
-                case 3: return [2 /*return*/, orgs];
-            }
-        });
-    });
-}
-exports.getOrgsForEnterprise = getOrgsForEnterprise;
-function getPendingInvitesFromOrgs(orgs, octokit) {
-    return __awaiter(this, void 0, void 0, function () {
-        var pendingInvites, _i, orgs_1, org, response, _a, response_1, invite;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
-                case 0:
-                    pendingInvites = [];
-                    _i = 0, orgs_1 = orgs;
-                    _b.label = 1;
-                case 1:
-                    if (!(_i < orgs_1.length)) return [3 /*break*/, 4];
-                    org = orgs_1[_i];
-                    return [4 /*yield*/, octokit.paginate(octokit.rest.orgs.listPendingInvitations, {
-                            org: org
-                        })];
-                case 2:
-                    response = _b.sent();
-                    for (_a = 0, response_1 = response; _a < response_1.length; _a++) {
-                        invite = response_1[_a];
-                        pendingInvites.push({
-                            org: org,
-                            login: invite.login,
-                            email: invite.email,
-                            created_at: invite.created_at
-                        });
-                    }
-                    _b.label = 3;
-                case 3:
-                    _i++;
-                    return [3 /*break*/, 1];
-                case 4: 
-                // Sort them by created_at
-                return [2 /*return*/, pendingInvites.sort(function (a, b) { return a.created_at.localeCompare(b.created_at); })];
-            }
-        });
-    });
-}
-exports.getPendingInvitesFromOrgs = getPendingInvitesFromOrgs;
-function getMembersFromOrgs(orgs, octokit) {
-    return __awaiter(this, void 0, void 0, function () {
-        var members, _i, orgs_2, org, lastPage, hasNextPage, response, membersData, _a, _b, member, existingMember, _c, _d, email;
-        return __generator(this, function (_e) {
-            switch (_e.label) {
-                case 0:
-                    members = new Map();
-                    _i = 0, orgs_2 = orgs;
-                    _e.label = 1;
-                case 1:
-                    if (!(_i < orgs_2.length)) return [3 /*break*/, 5];
-                    org = orgs_2[_i];
-                    lastPage = void 0;
-                    hasNextPage = true;
-                    _e.label = 2;
-                case 2:
-                    if (!hasNextPage) return [3 /*break*/, 4];
-                    return [4 /*yield*/, octokit.graphql("query($org: String!, $page: String) {\n                    organization(login: $org) {\n                      members: membersWithRole(first: 100, after: $page) {\n                        pageInfo {\n                          endCursor\n                          hasNextPage\n                        }\n                        nodes {\n                          login\n                          emails: organizationVerifiedDomainEmails(login: $org)\n                        }\n                      }\n                    }\n                  }\n                ", {
-                            org: org,
-                            page: lastPage
-                        })];
-                case 3:
-                    response = _e.sent();
-                    membersData = response.organization.members;
-                    lastPage = membersData.pageInfo.endCursor;
-                    hasNextPage = membersData.pageInfo.hasNextPage;
-                    for (_a = 0, _b = membersData.nodes; _a < _b.length; _a++) {
-                        member = _b[_a];
-                        existingMember = members.get(member.login);
-                        if (existingMember) {
-                            // Only append the email and the org
-                            for (_c = 0, _d = member.emails; _c < _d.length; _c++) {
-                                email = _d[_c];
-                                if (existingMember.emails.includes(email)) {
-                                    existingMember.emails.push(email);
-                                }
-                            }
-                            existingMember.orgs.push(org);
-                        }
-                        else {
-                            // Create a new item
-                            members.set(member.login, __assign(__assign({}, member), { orgs: [org], type: types_1.Membership.MEMBER }));
-                        }
-                    }
-                    return [3 /*break*/, 2];
-                case 4:
-                    _i++;
-                    return [3 /*break*/, 1];
-                case 5: return [2 /*return*/, Array.from(members.values())];
-            }
-        });
-    });
-}
-exports.getMembersFromOrgs = getMembersFromOrgs;
-function getOutsideCollaborators(enterprise, octokit) {
-    return __awaiter(this, void 0, void 0, function () {
-        var collaborators, lastPage, hasNextPage, response, members;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    collaborators = [];
-                    lastPage = null;
-                    hasNextPage = true;
-                    _a.label = 1;
-                case 1:
-                    if (!hasNextPage) return [3 /*break*/, 3];
-                    return [4 /*yield*/, octokit.graphql("query($enterprise: String!, $lastPage: String) {\n        enterprise(slug: $enterprise) {\n          ownerInfo {\n            outsideCollaborators(last: 100, after: $lastPage) {\n              pageInfo {\n                endCursor\n                hasNextPage\n              }\n              edges {\n                repositories(first: 100) {\n                  nodes {\n                    name\n                    nameWithOwner\n                  }\n                }\n                node {\n                  login\n                  email\n                }\n              }\n            }\n          }\n        }\n      }", {
-                            enterprise: enterprise,
-                            lastPage: lastPage
-                        })];
-                case 2:
-                    response = _a.sent();
-                    hasNextPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.hasNextPage;
-                    lastPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.endCursor;
-                    members = response.enterprise.ownerInfo.outsideCollaborators.edges.map(function (item) {
-                        // Get the unique set of owners from the name of the repos
-                        var orgs = Array.from(new Set(item.repositories.nodes.map(function (node) { return node.nameWithOwner.split('/')[0]; })));
-                        return {
-                            orgs: orgs,
-                            login: item.node.login,
-                            emails: [item.node.email],
-                            type: types_1.Membership.OUTSISE_COLLABORATOR
-                        };
-                    });
-                    collaborators.push.apply(collaborators, members);
-                    return [3 /*break*/, 1];
-                case 3: return [2 /*return*/, collaborators];
-            }
-        });
-    });
-}
-exports.getOutsideCollaborators = getOutsideCollaborators;
-function getOutsideCollaborator(orgs, octokit) {
-    return __awaiter(this, void 0, void 0, function () {
-        var collaborators, _i, orgs_3, org, data, _a, data_1, collaborator, existingCollaborator;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
-                case 0:
-                    collaborators = new Map();
-                    _i = 0, orgs_3 = orgs;
-                    _b.label = 1;
-                case 1:
-                    if (!(_i < orgs_3.length)) return [3 /*break*/, 4];
-                    org = orgs_3[_i];
-                    return [4 /*yield*/, octokit.paginate(octokit.rest.orgs.listOutsideCollaborators, {
-                            org: org
-                        })];
-                case 2:
-                    data = _b.sent();
-                    for (_a = 0, data_1 = data; _a < data_1.length; _a++) {
-                        collaborator = data_1[_a];
-                        if (collaborator !== null) {
-                            existingCollaborator = collaborators.get(collaborator.login);
-                            if (existingCollaborator) {
-                                existingCollaborator.orgs.push(org);
-                            }
-                            else {
-                                collaborators.set(collaborator.login, {
-                                    login: collaborator.login,
-                                    emails: [],
-                                    orgs: [org],
-                                    type: types_1.Membership.OUTSISE_COLLABORATOR
-                                });
-                            }
-                        }
-                    }
-                    _b.label = 3;
-                case 3:
-                    _i++;
-                    return [3 /*break*/, 1];
-                case 4: return [2 /*return*/, Array.from(collaborators.values())];
-            }
-        });
-    });
-}
-exports.getOutsideCollaborator = getOutsideCollaborator;
-//# sourceMappingURL=github-api.js.map
-
-/***/ }),
-
-/***/ 109:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-var core = __importStar(__nccwpck_require__(186));
-var reporter_1 = __nccwpck_require__(110);
-var types_1 = __nccwpck_require__(164);
-function run() {
-    return __awaiter(this, void 0, void 0, function () {
-        var token, enterprise, formatString, format, params, report, error_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    _a.trys.push([0, 2, , 3]);
-                    token = core.getInput('token', { required: true });
-                    enterprise = core.getInput('enterprise', { required: true });
-                    formatString = core.getInput('format', { required: true });
-                    format = types_1.OutputFormat[formatString];
-                    if (!format) {
-                        throw new Error("Invalid format: " + formatString);
-                    }
-                    params = {
-                        token: token,
-                        enterprise: enterprise,
-                        format: format
-                    };
-                    return [4 /*yield*/, reporter_1.generateReport(params)];
-                case 1:
-                    report = _a.sent();
-                    core.setOutput('data', report);
-                    return [3 /*break*/, 3];
-                case 2:
-                    error_1 = _a.sent();
-                    core.setFailed(error_1.message);
-                    return [3 /*break*/, 3];
-                case 3: return [2 /*return*/];
-            }
-        });
-    });
-}
-run();
-//# sourceMappingURL=main.js.map
-
-/***/ }),
-
-/***/ 110:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from) {
-    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
-        to[j] = from[i];
-    return to;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateReport = void 0;
-var rest_1 = __nccwpck_require__(375);
-var markdown_table_ts_1 = __nccwpck_require__(75);
-var marked_1 = __importDefault(__nccwpck_require__(230));
-var github_api_1 = __nccwpck_require__(17);
-var types_1 = __nccwpck_require__(164);
-function generateReport(params) {
-    return __awaiter(this, void 0, void 0, function () {
-        var octokit, orgs, members, outsideCollaborators, pendingInvites;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    octokit = new rest_1.Octokit({
-                        auth: params.token
-                    });
-                    return [4 /*yield*/, github_api_1.getOrgsForEnterprise(params.enterprise, octokit)];
-                case 1:
-                    orgs = _a.sent();
-                    return [4 /*yield*/, github_api_1.getMembersFromOrgs(orgs, octokit)];
-                case 2:
-                    members = _a.sent();
-                    return [4 /*yield*/, github_api_1.getOutsideCollaborators(params.enterprise, octokit)];
-                case 3:
-                    outsideCollaborators = _a.sent();
-                    return [4 /*yield*/, github_api_1.getPendingInvitesFromOrgs(orgs, octokit)];
-                case 4:
-                    pendingInvites = _a.sent();
-                    switch (params.format) {
-                        case types_1.OutputFormat.MARKDOWN:
-                            return [2 /*return*/, getMarkdownFormat(members, outsideCollaborators, pendingInvites)];
-                        case types_1.OutputFormat.HTML:
-                            return [2 /*return*/, getHtmlFormat(members, outsideCollaborators, pendingInvites)];
-                        case types_1.OutputFormat.JSON:
-                            return [2 /*return*/, getJSONFormat(members, outsideCollaborators, pendingInvites)];
-                    }
-                    return [2 /*return*/];
-            }
-        });
-    });
-}
-exports.generateReport = generateReport;
-function getMarkdownFormat(members, outsideCollaborators, pendingInvites) {
-    // Generate the members table
-    var allMembers = members.concat(outsideCollaborators);
-    var membersContent = markdown_table_ts_1.getMarkdownTable({
-        table: {
-            head: ['Login', 'Emails', 'Orgs', 'Membership'],
-            body: __spreadArray([], allMembers.map(function (item) { return [item.login, item.emails.join(','), item.orgs.join(','), item.type.toString()]; }))
-        }
-    });
-    // Generate the pending invites table
-    var pendingInvitesContent = markdown_table_ts_1.getMarkdownTable({
-        table: {
-            head: ['Login', 'Email', 'Org', 'Created At'],
-            body: __spreadArray([], pendingInvites.map(function (item) { return [item.login || 'Not registered', item.email, item.org, item.created_at]; }))
-        }
-    });
-    return "\n  ## GitHub Report\n\n  ### Organization members and outside collaborators\n  " + (allMembers.length > 0 ? membersContent : '**No members**') + "\n\n\n  ### Pending invites\n  " + (pendingInvites.length > 0 ? pendingInvitesContent : '**No pending invites**') + "\n  ";
-}
-function getHtmlFormat(members, outsideCollaborators, pendingInvites) {
-    return marked_1.default(getMarkdownFormat(members, outsideCollaborators, pendingInvites));
-}
-function getJSONFormat(members, outsideCollaborators, pendingInvites) {
-    return JSON.stringify({
-        members: members,
-        outsideCollaborators: outsideCollaborators,
-        pendingInvites: pendingInvites
-    });
-}
-//# sourceMappingURL=reporter.js.map
-
-/***/ }),
-
-/***/ 164:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Membership = exports.OutputFormat = void 0;
-// eslint-disable-next-line no-shadow
-var OutputFormat;
-(function (OutputFormat) {
-    OutputFormat[OutputFormat["HTML"] = 0] = "HTML";
-    OutputFormat[OutputFormat["MARKDOWN"] = 1] = "MARKDOWN";
-    OutputFormat[OutputFormat["JSON"] = 2] = "JSON";
-})(OutputFormat = exports.OutputFormat || (exports.OutputFormat = {}));
-// eslint-disable-next-line no-shadow
-var Membership;
-(function (Membership) {
-    Membership["MEMBER"] = "member";
-    Membership["OUTSISE_COLLABORATOR"] = "outside collaborator";
-})(Membership = exports.Membership || (exports.Membership = {}));
-//# sourceMappingURL=types.js.map
-
-/***/ }),
-
 /***/ 351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -3204,7 +2690,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var deprecation = __nccwpck_require__(932);
-var once = _interopDefault(__nccwpck_require__(223));
+var once = _interopDefault(__nccwpck_require__(253));
 
 const logOnce = once(deprecation => console.warn(deprecation));
 /**
@@ -3418,9 +2904,10 @@ exports.request = request;
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
+var __webpack_unused_export__;
 
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
+__webpack_unused_export__ = ({ value: true });
 
 var core = __nccwpck_require__(762);
 var pluginRequestLog = __nccwpck_require__(883);
@@ -3433,7 +2920,7 @@ const Octokit = core.Octokit.plugin(pluginRequestLog.requestLog, pluginRestEndpo
   userAgent: `octokit-rest.js/${VERSION}`
 });
 
-exports.Octokit = Octokit;
+exports.v = Octokit;
 //# sourceMappingURL=index.js.map
 
 
@@ -3686,161 +3173,6 @@ function isPlainObject(o) {
 }
 
 exports.isPlainObject = isPlainObject;
-
-
-/***/ }),
-
-/***/ 75:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getMarkdownTable = exports.MarkdownTableError = exports.Align = void 0;
-var Align;
-(function (Align) {
-    Align["Left"] = "left";
-    Align["Right"] = "right";
-    Align["Center"] = "center";
-    Align["None"] = "none";
-})(Align || (Align = {}));
-exports.Align = Align;
-class MarkdownTableError extends Error {
-    constructor(m) {
-        super(m);
-        Object.setPrototypeOf(this, MarkdownTableError.prototype);
-    }
-}
-exports.MarkdownTableError = MarkdownTableError;
-const validateTable = (table) => {
-    if (!table) {
-        throw new MarkdownTableError('Missing \'table\' property.');
-    }
-    if (!(table.head instanceof Array)) {
-        throw new MarkdownTableError(`Expected table.head to be Array<Column>, got ${typeof table.head}`);
-    }
-    if (table.head.length < 1) {
-        throw new MarkdownTableError(`Expected table to have at least 1 header, got ${table.head.length}`);
-    }
-    if (!(table.body instanceof Array)) {
-        throw new MarkdownTableError(`Expected table.body to be Array<Row>, got ${typeof table.body}`);
-    }
-    const allRows = [table.head, ...table.body];
-    allRows.forEach((row, rowIndex) => {
-        if (!(row instanceof Array)) {
-            throw new MarkdownTableError(`Expected row ${rowIndex} to be Array<string>, got ${typeof row}.`);
-        }
-        row.forEach((column, columnIndex) => {
-            if (typeof column !== 'string') {
-                throw new MarkdownTableError(`Expected column ${columnIndex} on row ${rowIndex} to be string, got ${typeof column}.`);
-            }
-        });
-    });
-};
-const validateAlignment = (alignment) => {
-    if (!alignment) {
-        return;
-    }
-    if (!(alignment instanceof Array)) {
-        throw new MarkdownTableError(`Expected alignment to be undefined or Array<Align>, got ${typeof alignment}.`);
-    }
-    alignment.forEach((a, index) => {
-        if (!Object.values(Align).includes(a)) {
-            throw new MarkdownTableError(`Invalid alignment for column ${index}.`);
-        }
-    });
-};
-const validateGetTableInput = (params) => {
-    if (!params) {
-        throw new MarkdownTableError('Missing input parameters.');
-    }
-    validateTable(params.table);
-    validateAlignment(params.alignment);
-    if (typeof params.alignColumns !== 'undefined' && typeof params.alignColumns !== 'boolean') {
-        throw new MarkdownTableError(`'alignColumns' must be either undefined or boolean, got ${typeof params.alignColumns}.`);
-    }
-};
-const getMarkdownRow = (params) => {
-    const alignment = params.alignment ? params.alignment : [];
-    let markdownRow = '|';
-    for (let i = 0; i < params.columnsAmount; i += 1) {
-        const column = params.row[i] ? params.row[i] : '';
-        const isRight = alignment[i] === Align.Right;
-        const isCenter = alignment[i] === Align.Center;
-        const targetLength = params.columnLengths ? params.columnLengths[i] : column.length;
-        if (isRight) {
-            markdownRow += ` ${column.padStart(targetLength)} |`;
-        }
-        else if (isCenter) {
-            markdownRow += ` ${column.padStart((targetLength + column.length) / 2).padEnd(targetLength)} |`;
-        }
-        else {
-            markdownRow += ` ${column.padEnd(targetLength)} |`;
-        }
-    }
-    return markdownRow;
-};
-const getMarkdownAlignment = (params) => {
-    const alignment = params.alignment ? params.alignment : [];
-    let markdownAlignment = '|';
-    for (let i = 0; i < params.columnsAmount; i += 1) {
-        const isLeft = alignment[i] === Align.Left;
-        const isRight = alignment[i] === Align.Right;
-        const isCenter = alignment[i] === Align.Center;
-        const isLeftOrCenter = isLeft || isCenter;
-        const isRightOrCenter = isRight || isCenter;
-        const targetLength = params.columnLengths ? params.columnLengths[i] - 2 : 1;
-        markdownAlignment += isLeftOrCenter ? ' :' : ' -';
-        markdownAlignment += '-'.padEnd(targetLength, '-');
-        markdownAlignment += isRightOrCenter ? ': |' : '- |';
-    }
-    return markdownAlignment;
-};
-const getColumnLengths = (params) => {
-    const columnLengths = new Array(params.maxColumnsAmount).fill(3);
-    for (let row = 0; row < params.allRows.length; row += 1) {
-        for (let column = 0; column < params.allRows[row].length; column += 1) {
-            columnLengths[column] = Math.max(columnLengths[column], params.allRows[row][column].length);
-        }
-    }
-    return columnLengths;
-};
-const getMarkdownTable = (params) => {
-    validateGetTableInput(params);
-    const headerColumns = params.table.head.length;
-    const rowColumns = params.table.body.map((row) => row.length);
-    const maxColumnsAmount = Math.max(headerColumns, ...rowColumns);
-    const alignColumns = params.alignColumns ?? true;
-    const columnLengths = alignColumns
-        ? getColumnLengths({
-            allRows: [params.table.head, ...params.table.body],
-            maxColumnsAmount,
-        })
-        : undefined;
-    const markdownTableHead = getMarkdownRow({
-        alignment: params.alignment,
-        row: params.table.head,
-        columnsAmount: maxColumnsAmount,
-        columnLengths,
-    });
-    const markdownTableAlignment = getMarkdownAlignment({
-        alignment: params.alignment,
-        columnsAmount: maxColumnsAmount,
-        columnLengths,
-    });
-    let markdownTableBody = '';
-    params.table.body.forEach((row) => {
-        const markdownRow = getMarkdownRow({
-            alignment: params.alignment,
-            row,
-            columnsAmount: maxColumnsAmount,
-            columnLengths,
-        });
-        markdownTableBody += `${markdownRow}\n`;
-    });
-    return `${markdownTableHead}\n${markdownTableAlignment}\n${markdownTableBody}`.trimEnd();
-};
-exports.getMarkdownTable = getMarkdownTable;
 
 
 /***/ }),
@@ -5935,7 +5267,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 230:
+/***/ 223:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const Lexer = __nccwpck_require__(354);
@@ -8186,7 +7518,7 @@ exports.FetchError = FetchError;
 
 /***/ }),
 
-/***/ 223:
+/***/ 253:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 var wrappy = __nccwpck_require__(940)
@@ -8406,16 +7738,490 @@ module.exports = require("zlib");;
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__nccwpck_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__nccwpck_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";/************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(109);
-/******/ 	module.exports = __webpack_exports__;
-/******/ 	
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+// ESM COMPAT FLAG
+__nccwpck_require__.r(__webpack_exports__);
+
+// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
+var core = __nccwpck_require__(186);
+// EXTERNAL MODULE: ./node_modules/@octokit/rest/dist-node/index.js
+var dist_node = __nccwpck_require__(375);
+// EXTERNAL MODULE: ./node_modules/marked/src/marked.js
+var marked = __nccwpck_require__(223);
+var marked_default = /*#__PURE__*/__nccwpck_require__.n(marked);
+;// CONCATENATED MODULE: ./src/types.ts
+// eslint-disable-next-line no-shadow
+var OutputFormat;
+(function (OutputFormat) {
+    OutputFormat[OutputFormat["HTML"] = 0] = "HTML";
+    OutputFormat[OutputFormat["MARKDOWN"] = 1] = "MARKDOWN";
+    OutputFormat[OutputFormat["JSON"] = 2] = "JSON";
+})(OutputFormat || (OutputFormat = {}));
+// eslint-disable-next-line no-shadow
+var types_Membership;
+(function (Membership) {
+    Membership["MEMBER"] = "member";
+    Membership["OUTSISE_COLLABORATOR"] = "outside collaborator";
+})(types_Membership || (types_Membership = {}));
+
+;// CONCATENATED MODULE: ./src/api/github-api.ts
+
+async function getOrgsForEnterprise(enterprise, octokit) {
+    let lastPage = null;
+    let hasNextPage = true;
+    const orgs = [];
+    while (hasNextPage) {
+        const response = await octokit.graphql(`query($enterprise: String!, $page: String) {
+        enterprise(slug: $enterprise) {
+          organizations(first: 100, after: $page) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              login
+            }
+          }
+        }
+      }
+    `, {
+            enterprise,
+            page: lastPage
+        });
+        const orgsData = response.enterprise.organizations;
+        lastPage = orgsData.pageInfo.endCursor;
+        hasNextPage = orgsData.pageInfo.hasNextPage;
+        for (const org of orgsData.nodes) {
+            orgs.push(org.login);
+        }
+    }
+    return orgs;
+}
+async function getPendingInvitesFromOrgs(orgs, octokit) {
+    const pendingInvites = [];
+    for (const org of orgs) {
+        const response = await octokit.paginate(octokit.rest.orgs.listPendingInvitations, {
+            org
+        });
+        for (const invite of response) {
+            pendingInvites.push({
+                org,
+                login: invite.login,
+                email: invite.email,
+                created_at: invite.created_at
+            });
+        }
+    }
+    // Sort them by created_at
+    return pendingInvites.sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+async function getMembersFromOrgs(orgs, octokit) {
+    const members = new Map();
+    for (const org of orgs) {
+        let lastPage;
+        let hasNextPage = true;
+        while (hasNextPage) {
+            const response = await octokit.graphql(`query($org: String!, $page: String) {
+                    organization(login: $org) {
+                      members: membersWithRole(first: 100, after: $page) {
+                        pageInfo {
+                          endCursor
+                          hasNextPage
+                        }
+                        nodes {
+                          login
+                          emails: organizationVerifiedDomainEmails(login: $org)
+                        }
+                      }
+                    }
+                  }
+                `, {
+                org,
+                page: lastPage
+            });
+            const membersData = response.organization.members;
+            lastPage = membersData.pageInfo.endCursor;
+            hasNextPage = membersData.pageInfo.hasNextPage;
+            for (const member of membersData.nodes) {
+                const existingMember = members.get(member.login);
+                if (existingMember) {
+                    // Only append the email and the org
+                    for (const email of member.emails) {
+                        if (existingMember.emails.includes(email)) {
+                            existingMember.emails.push(email);
+                        }
+                    }
+                    existingMember.orgs.push(org);
+                }
+                else {
+                    // Create a new item
+                    members.set(member.login, { ...member, orgs: [org], type: types_Membership.MEMBER });
+                }
+            }
+        }
+    }
+    return Array.from(members.values());
+}
+async function getOutsideCollaborators(enterprise, octokit) {
+    const collaborators = [];
+    let lastPage = null;
+    let hasNextPage = true;
+    while (hasNextPage) {
+        const response = await octokit.graphql(`query($enterprise: String!, $lastPage: String) {
+        enterprise(slug: $enterprise) {
+          ownerInfo {
+            outsideCollaborators(last: 100, after: $lastPage) {
+              pageInfo {
+                endCursor
+                hasNextPage
+              }
+              edges {
+                repositories(first: 100) {
+                  nodes {
+                    name
+                    nameWithOwner
+                  }
+                }
+                node {
+                  login
+                  email
+                }
+              }
+            }
+          }
+        }
+      }`, {
+            enterprise,
+            lastPage
+        });
+        hasNextPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.hasNextPage;
+        lastPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.endCursor;
+        const members = response.enterprise.ownerInfo.outsideCollaborators.edges.map(item => {
+            // Get the unique set of owners from the name of the repos
+            const orgs = Array.from(new Set(item.repositories.nodes.map(node => node.nameWithOwner.split('/')[0])));
+            return {
+                orgs,
+                login: item.node.login,
+                emails: [item.node.email],
+                type: types_Membership.OUTSISE_COLLABORATOR
+            };
+        });
+        collaborators.push(...members);
+    }
+    return collaborators;
+}
+async function getOutsideCollaborator(orgs, octokit) {
+    const collaborators = new Map();
+    for (const org of orgs) {
+        const data = await octokit.paginate(octokit.rest.orgs.listOutsideCollaborators, {
+            org
+        });
+        for (const collaborator of data) {
+            if (collaborator !== null) {
+                const existingCollaborator = collaborators.get(collaborator.login);
+                if (existingCollaborator) {
+                    existingCollaborator.orgs.push(org);
+                }
+                else {
+                    collaborators.set(collaborator.login, {
+                        login: collaborator.login,
+                        emails: [],
+                        orgs: [org],
+                        type: Membership.OUTSISE_COLLABORATOR
+                    });
+                }
+            }
+        }
+    }
+    return Array.from(collaborators.values());
+}
+
+;// CONCATENATED MODULE: ./src/markdown/markdown-table.ts
+// This file has been taken from https://gitlab.com/jiri.hajek/markdown-table-ts/-/blob/master/src/index.ts
+// The project is compiling against es2020 and that causes ?? operator tom break
+/* eslint-disable @typescript-eslint/prefer-for-of */
+/* eslint-disable github/array-foreach */
+// eslint-disable-next-line no-shadow
+var Align;
+(function (Align) {
+    Align["Left"] = "left";
+    Align["Right"] = "right";
+    Align["Center"] = "center";
+    Align["None"] = "none";
+})(Align || (Align = {}));
+class MarkdownTableError extends Error {
+    constructor(m) {
+        super(m);
+        Object.setPrototypeOf(this, MarkdownTableError.prototype);
+    }
+}
+const validateTable = (table) => {
+    if (!table) {
+        throw new MarkdownTableError("Missing 'table' property.");
+    }
+    if (!(table.head instanceof Array)) {
+        throw new MarkdownTableError(`Expected table.head to be Array<Column>, got ${typeof table.head}`);
+    }
+    if (table.head.length < 1) {
+        throw new MarkdownTableError(`Expected table to have at least 1 header, got ${table.head.length}`);
+    }
+    if (!(table.body instanceof Array)) {
+        throw new MarkdownTableError(`Expected table.body to be Array<Row>, got ${typeof table.body}`);
+    }
+    const allRows = [table.head, ...table.body];
+    allRows.forEach((row, rowIndex) => {
+        if (!(row instanceof Array)) {
+            throw new MarkdownTableError(`Expected row ${rowIndex} to be Array<string>, got ${typeof row}.`);
+        }
+        row.forEach((column, columnIndex) => {
+            if (typeof column !== 'string') {
+                throw new MarkdownTableError(`Expected column ${columnIndex} on row ${rowIndex} to be string, got ${typeof column}.`);
+            }
+        });
+    });
+};
+const validateAlignment = (alignment) => {
+    if (!alignment) {
+        return;
+    }
+    if (!(alignment instanceof Array)) {
+        throw new MarkdownTableError(`Expected alignment to be undefined or Array<Align>, got ${typeof alignment}.`);
+    }
+    alignment.forEach((a, index) => {
+        if (!Object.values(Align).includes(a)) {
+            throw new MarkdownTableError(`Invalid alignment for column ${index}.`);
+        }
+    });
+};
+const validateGetTableInput = (params) => {
+    if (!params) {
+        throw new MarkdownTableError('Missing input parameters.');
+    }
+    validateTable(params.table);
+    validateAlignment(params.alignment);
+    if (typeof params.alignColumns !== 'undefined' && typeof params.alignColumns !== 'boolean') {
+        throw new MarkdownTableError(`'alignColumns' must be either undefined or boolean, got ${typeof params.alignColumns}.`);
+    }
+};
+const getMarkdownRow = (params) => {
+    const alignment = params.alignment ? params.alignment : [];
+    let markdownRow = '|';
+    for (let i = 0; i < params.columnsAmount; i += 1) {
+        const column = params.row[i] ? params.row[i] : '';
+        const isRight = alignment[i] === Align.Right;
+        const isCenter = alignment[i] === Align.Center;
+        const targetLength = params.columnLengths ? params.columnLengths[i] : column.length;
+        if (isRight) {
+            markdownRow += ` ${column.padStart(targetLength)} |`;
+        }
+        else if (isCenter) {
+            markdownRow += ` ${column.padStart((targetLength + column.length) / 2).padEnd(targetLength)} |`;
+        }
+        else {
+            markdownRow += ` ${column.padEnd(targetLength)} |`;
+        }
+    }
+    return markdownRow;
+};
+const getMarkdownAlignment = (params) => {
+    const alignment = params.alignment ? params.alignment : [];
+    let markdownAlignment = '|';
+    for (let i = 0; i < params.columnsAmount; i += 1) {
+        const isLeft = alignment[i] === Align.Left;
+        const isRight = alignment[i] === Align.Right;
+        const isCenter = alignment[i] === Align.Center;
+        const isLeftOrCenter = isLeft || isCenter;
+        const isRightOrCenter = isRight || isCenter;
+        const targetLength = params.columnLengths ? params.columnLengths[i] - 2 : 1;
+        markdownAlignment += isLeftOrCenter ? ' :' : ' -';
+        markdownAlignment += '-'.padEnd(targetLength, '-');
+        markdownAlignment += isRightOrCenter ? ': |' : '- |';
+    }
+    return markdownAlignment;
+};
+const getColumnLengths = (params) => {
+    const columnLengths = new Array(params.maxColumnsAmount).fill(3);
+    for (let row = 0; row < params.allRows.length; row += 1) {
+        for (let column = 0; column < params.allRows[row].length; column += 1) {
+            columnLengths[column] = Math.max(columnLengths[column], params.allRows[row][column].length);
+        }
+    }
+    return columnLengths;
+};
+const getMarkdownTable = (params) => {
+    validateGetTableInput(params);
+    const headerColumns = params.table.head.length;
+    const rowColumns = params.table.body.map(row => row.length);
+    const maxColumnsAmount = Math.max(headerColumns, ...rowColumns);
+    const alignColumns = params.alignColumns || true;
+    const columnLengths = alignColumns
+        ? getColumnLengths({
+            allRows: [params.table.head, ...params.table.body],
+            maxColumnsAmount
+        })
+        : undefined;
+    const markdownTableHead = getMarkdownRow({
+        alignment: params.alignment,
+        row: params.table.head,
+        columnsAmount: maxColumnsAmount,
+        columnLengths
+    });
+    const markdownTableAlignment = getMarkdownAlignment({
+        alignment: params.alignment,
+        columnsAmount: maxColumnsAmount,
+        columnLengths
+    });
+    let markdownTableBody = '';
+    params.table.body.forEach(row => {
+        const markdownRow = getMarkdownRow({
+            alignment: params.alignment,
+            row,
+            columnsAmount: maxColumnsAmount,
+            columnLengths
+        });
+        markdownTableBody += `${markdownRow}\n`;
+    });
+    return `${markdownTableHead}\n${markdownTableAlignment}\n${markdownTableBody}`.trimEnd();
+};
+
+
+;// CONCATENATED MODULE: ./src/reporter.ts
+
+
+
+
+
+async function generateReport(params) {
+    const octokit = new dist_node/* Octokit */.v({
+        auth: params.token
+    });
+    const orgs = await getOrgsForEnterprise(params.enterprise, octokit);
+    const members = await getMembersFromOrgs(orgs, octokit);
+    const outsideCollaborators = await getOutsideCollaborators(params.enterprise, octokit);
+    const pendingInvites = await getPendingInvitesFromOrgs(orgs, octokit);
+    switch (params.format) {
+        case OutputFormat.MARKDOWN:
+            return getMarkdownFormat(members, outsideCollaborators, pendingInvites);
+        case OutputFormat.HTML:
+            return getHtmlFormat(members, outsideCollaborators, pendingInvites);
+        case OutputFormat.JSON:
+            return getJSONFormat(members, outsideCollaborators, pendingInvites);
+    }
+}
+function getMarkdownFormat(members, outsideCollaborators, pendingInvites) {
+    // Generate the members table
+    const allMembers = members.concat(outsideCollaborators);
+    const membersContent = getMarkdownTable({
+        table: {
+            head: ['Login', 'Emails', 'Orgs', 'Membership'],
+            body: [...allMembers.map(item => [item.login, item.emails.join(','), item.orgs.join(','), item.type.toString()])]
+        }
+    });
+    // Generate the pending invites table
+    const pendingInvitesContent = getMarkdownTable({
+        table: {
+            head: ['Login', 'Email', 'Org', 'Created At'],
+            body: [...pendingInvites.map(item => [item.login || 'Not registered', item.email, item.org, item.created_at])]
+        }
+    });
+    return `
+  ## GitHub Report
+
+  ### Organization members and outside collaborators
+  ${allMembers.length > 0 ? membersContent : '**No members**'}
+
+
+  ### Pending invites
+  ${pendingInvites.length > 0 ? pendingInvitesContent : '**No pending invites**'}
+  `;
+}
+function getHtmlFormat(members, outsideCollaborators, pendingInvites) {
+    return marked_default()(getMarkdownFormat(members, outsideCollaborators, pendingInvites));
+}
+function getJSONFormat(members, outsideCollaborators, pendingInvites) {
+    return JSON.stringify({
+        members,
+        outsideCollaborators,
+        pendingInvites
+    });
+}
+
+;// CONCATENATED MODULE: ./src/main.ts
+
+
+
+async function run() {
+    try {
+        const token = core.getInput('token', { required: true });
+        const enterprise = core.getInput('enterprise', { required: true });
+        const formatString = core.getInput('format', { required: true });
+        const format = OutputFormat[formatString];
+        if (!format) {
+            throw new Error(`Invalid format: ${formatString}`);
+        }
+        const params = {
+            token,
+            enterprise,
+            format
+        };
+        const report = await generateReport(params);
+        core.setOutput('data', report);
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
+}
+run();
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;
 //# sourceMappingURL=index.js.map

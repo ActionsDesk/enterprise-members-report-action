@@ -1,5 +1,4 @@
 import {Octokit} from '@octokit/rest'
-import {getMarkdownTable} from 'markdown-table-ts'
 import marked from 'marked'
 import {
   getMembersFromOrgs,
@@ -7,6 +6,7 @@ import {
   getOutsideCollaborators,
   getPendingInvitesFromOrgs
 } from './api/github-api'
+import {getMarkdownTable} from './markdown/markdown-table'
 import {ActionParams, OutputFormat, OrgMember, PendingInvite} from './types'
 
 export async function generateReport(params: ActionParams): Promise<string> {

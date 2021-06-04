@@ -34,13 +34,13 @@
         "node": ">=12",
         "npm": ">=6"
     },
-    "main": "lib/main.js",
+    "main": "src/main.ts",
     "scripts": {
         "build": "tsc",
         "format": "prettier --write **/*.ts",
         "format-check": "prettier --check **/*.ts",
         "lint": "eslint src/**/*.ts",
-        "pack": "ncc build --source-map --license licenses.txt",
+        "pack": "ncc build --source-map --license licenses.txt --target es6",
         "test": "jest",
         "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
     },
@@ -48,7 +48,6 @@
         "@actions/core": "^1.2.6",
         "@actions/github": "^5.0.0",
         "@octokit/rest": "^18.5.6",
-        "markdown-table-ts": "^1.0.3",
         "marked": "^2.0.7"
     },
     "devDependencies": {
