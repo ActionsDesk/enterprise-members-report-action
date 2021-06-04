@@ -1,16 +1,15 @@
 import {Octokit} from '@octokit/rest'
 import {getMarkdownTable} from 'markdown-table-ts'
+import marked from 'marked'
 import {
   getMembersFromOrgs,
   getOrgsForEnterprise,
   getOutsideCollaborators,
   getPendingInvitesFromOrgs
 } from './api/github-api'
-import {ActionParams, EmailParams} from './types'
-import nodemailer from 'nodemailer'
-import marked from 'marked'
+import {ActionParams, OutputFormat, OrgMember, PendingInvite} from './types'
 
-export async function generateReport(params: ActionParams): Promise<void> {
+export async function generateReport(params: ActionParams): Promise<string> {
   const octokit = new Octokit({
     auth: params.token
   })
@@ -20,6 +19,21 @@ export async function generateReport(params: ActionParams): Promise<void> {
   const outsideCollaborators = await getOutsideCollaborators(params.enterprise, octokit)
   const pendingInvites = await getPendingInvitesFromOrgs(orgs, octokit)
 
+  switch (params.format) {
+    case OutputFormat.MARKDOWN:
+      return getMarkdownFormat(members, outsideCollaborators, pendingInvites)
+    case OutputFormat.HTML:
+      return getHtmlFormat(members, outsideCollaborators, pendingInvites)
+    case OutputFormat.JSON:
+      return getJSONFormat(members, outsideCollaborators, pendingInvites)
+  }
+}
+
+function getMarkdownFormat(
+  members: OrgMember[],
+  outsideCollaborators: OrgMember[],
+  pendingInvites: PendingInvite[]
+): string {
   // Generate the members table
   const allMembers = members.concat(outsideCollaborators)
   const membersContent = getMarkdownTable({
@@ -36,7 +50,7 @@ export async function generateReport(params: ActionParams): Promise<void> {
       body: [...pendingInvites.map(item => [item.login || 'Not registered', item.email, item.org, item.created_at])]
     }
   })
-  const emailMarkdown = `
+  return `
   ## GitHub Report
 
   ### Organization members and outside collaborators
@@ -46,30 +60,24 @@ export async function generateReport(params: ActionParams): Promise<void> {
   ### Pending invites
   ${pendingInvites.length > 0 ? pendingInvitesContent : '**No pending invites**'}
   `
-
-  await sendEmail(params, marked(emailMarkdown))
 }
 
-async function sendEmail(params: EmailParams, bodyHtml: string): Promise<void> {
-  const info = await nodemailer
-    .createTransport({
-      host: params.smtp_host,
-      port: params.smtp_port,
-      secure: false,
-      ignoreTLS: true
-    })
-    .sendMail({
-      from: params.sender,
-      to: params.emails,
-      subject: params.subject,
-      html: bodyHtml,
-      headers: {
-        'Auto-Submitted': 'auto-generated',
-        'X-Auto-Response-Suppress': 'All'
-      }
-    })
+function getHtmlFormat(
+  members: OrgMember[],
+  outsideCollaborators: OrgMember[],
+  pendingInvites: PendingInvite[]
+): string {
+  return marked(getMarkdownFormat(members, outsideCollaborators, pendingInvites))
+}
 
-  if (info === null) {
-    console.error('Error sending email, no message data returned.')
-  }
+function getJSONFormat(
+  members: OrgMember[],
+  outsideCollaborators: OrgMember[],
+  pendingInvites: PendingInvite[]
+): string {
+  return JSON.stringify({
+    members,
+    outsideCollaborators,
+    pendingInvites
+  })
 }

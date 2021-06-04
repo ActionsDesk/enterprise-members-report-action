@@ -1,27 +1,24 @@
 import * as core from '@actions/core'
 import {generateReport} from './reporter'
-import {ActionParams} from './types'
+import {ActionParams, OutputFormat} from './types'
 
 async function run(): Promise<void> {
   try {
     const token: string = core.getInput('token', {required: true})
     const enterprise: string = core.getInput('enterprise', {required: true})
-    const emails: string = core.getInput('emails', {required: true})
-    const smtp_host: string = core.getInput('smtp_host', {required: true})
-    const smtp_port: number = parseInt(core.getInput('smtp_port', {required: true}))
-    const sender: string = core.getInput('sender')
-    const subject: string = core.getInput('subject')
+    const formatString: string = core.getInput('format', {required: true})
+    const format: OutputFormat = OutputFormat[formatString as keyof typeof OutputFormat]
+    if (!format) {
+      throw new Error(`Invalid format: ${formatString}`)
+    }
 
     const params: ActionParams = {
       token,
       enterprise,
-      emails,
-      smtp_host,
-      smtp_port,
-      sender,
-      subject
+      format
     }
-    await generateReport(params)
+    const report = await generateReport(params)
+    core.setOutput('data', report)
   } catch (error) {
     core.setFailed(error.message)
   }

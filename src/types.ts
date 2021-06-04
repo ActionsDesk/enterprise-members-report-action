@@ -1,9 +1,12 @@
-export type EmailParams = {
-  emails: string
-  smtp_host: string
-  smtp_port: number
-  sender: string
-  subject: string
+// eslint-disable-next-line no-shadow
+export enum OutputFormat {
+  HTML,
+  MARKDOWN,
+  JSON
+}
+
+export type FormatParams = {
+  format: OutputFormat
 }
 
 export type ApiParams = {
@@ -11,7 +14,7 @@ export type ApiParams = {
   enterprise: string
 }
 
-export type ActionParams = ApiParams & EmailParams
+export type ActionParams = ApiParams & FormatParams
 
 export type OrgLogin = {
   login: string

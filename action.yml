@@ -8,23 +8,12 @@ inputs:
   enterprise:
     required: true
     description: 'The enterprise where we want to generate the report'
-  emails:
+  format:
     required: true
-    description: 'The emails, comma separated, where the report will be sent'
-  smtp_host:
-    required: true
-    description: 'The host of the smtp server'
-  smtp_port:
-    required: true
-    description: 'The port of the smtp server'
-  sender:
-    required: false
-    description: 'The name of the sender'
-    default: GitHub
-  subject:
-    required: false
-    description: 'The name of the email subject'
-    default: GitHub Report
+    description: 'Determines how the output parameter will be formatted. Supports: json, markdown and html'
+outputs:
+  data: 
+    description: 'The data extracted from the license API calls in the format specified. The type of the output is always string'
 runs:
   using: 'node12'
   main: 'dist/index.js'

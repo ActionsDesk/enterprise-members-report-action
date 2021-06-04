@@ -2,7 +2,7 @@
 
 ## Description
 
-This action generates reports and sends them over email:
+This action generates a report for an enterprise with the following elements:
 - **Members**: a report of all users that are members of at least one org in the enterprise
 - **Outside collaborators**: a compilation of all outside collaborators in all the orgs
 - **Pending invites**: the list of all pending invites in all the orgs
@@ -11,18 +11,38 @@ This action generates reports and sends them over email:
 
 This actions has the following inputs:
 
-| Parameter  | Description                                                                | Default       | Is Required |
-|------------|----------------------------------------------------------------------------|---------------|-------------|
-| token      | A personal access token with permissions on all the orgs of the enterprise | None          | ✅           |
-| enterprise | The enterprise where we want to generate the report                        | None          | ✅           |
-| emails     | The emails, comma separated, where the report will be sent                 | None          | ✅           |
-| smtp_host  | The host of the smtp server                                                | None          | ✅           |
-| smtp_port  | The port of the smtp server                                                | None          | ✅           |
-| sender     | The name of the sender                                                     | GitHub        | ❌           |
-| subject    | The name of the email subject                                              | GitHub Report | ❌           |
+| Parameter  | Description                                                                              | Default | Is Required |
+|------------|------------------------------------------------------------------------------------------|---------|-------------|
+| token      | A personal access token with permissions on all the orgs of the enterprise               | None    | ✅           |
+| enterprise | The enterprise where we want to generate the report                                      | None    | ✅           |
+| format     | Determines how the output parameter will be formatted. Supports: json, markdown and html | None    | ✅           |
+
+This action has the following outputs:
+
+| Parameter | Description                                                                                                   |
+|-----------|---------------------------------------------------------------------------------------------------------------|
+| data      | he data extracted from the license API calls in the format specified. The type of the output is always string |
+
 
 Here you can see a workflow example using this action:
 
 ```yml
-TBD
+name: Report workflow
+on: 
+  schedule:
+    # every Tuesday at 07:00 UTC
+    - cron: '0 7 * * 3'
+
+jobs:
+  sendReport:
+    runs-on: 'ubuntu-latest'
+    steps:
+    - name: Generate report
+      uses: ActionsDesk/enterprise-members-report-action@latest
+      with:
+        # Remember GITHUB_TOKEN doesn't work here as we require to have access to the enterprise
+        token: {{ secrets.TOKEN }} 
+        enterprise: avocado-corp
+        format: 'html'
+
 ```
