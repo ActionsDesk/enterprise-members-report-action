@@ -8,7 +8,7 @@ async function run(): Promise<void> {
     const enterprise: string = core.getInput('enterprise', {required: true})
     const formatString: string = core.getInput('format', {required: true})
     const format: OutputFormat = OutputFormat[formatString.toUpperCase() as keyof typeof OutputFormat]
-    if (!format) {
+    if (format === undefined) {
       throw new Error(`Invalid format: ${formatString}`)
     }
 

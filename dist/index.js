@@ -7811,13 +7811,23 @@ var types_Membership;
 })(types_Membership || (types_Membership = {}));
 
 ;// CONCATENATED MODULE: ./src/api/github-api.ts
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 
-async function getOrgsForEnterprise(enterprise, octokit) {
-    let lastPage = null;
-    let hasNextPage = true;
-    const orgs = [];
-    while (hasNextPage) {
-        const response = await octokit.graphql(`query($enterprise: String!, $page: String) {
+function getOrgsForEnterprise(enterprise, octokit) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let lastPage = null;
+        let hasNextPage = true;
+        const orgs = [];
+        while (hasNextPage) {
+            const response = yield octokit.graphql(`query($enterprise: String!, $page: String) {
         enterprise(slug: $enterprise) {
           organizations(first: 100, after: $page) {
             pageInfo {
@@ -7831,43 +7841,47 @@ async function getOrgsForEnterprise(enterprise, octokit) {
         }
       }
     `, {
-            enterprise,
-            page: lastPage
-        });
-        const orgsData = response.enterprise.organizations;
-        lastPage = orgsData.pageInfo.endCursor;
-        hasNextPage = orgsData.pageInfo.hasNextPage;
-        for (const org of orgsData.nodes) {
-            orgs.push(org.login);
-        }
-    }
-    return orgs;
-}
-async function getPendingInvitesFromOrgs(orgs, octokit) {
-    const pendingInvites = [];
-    for (const org of orgs) {
-        const response = await octokit.paginate(octokit.rest.orgs.listPendingInvitations, {
-            org
-        });
-        for (const invite of response) {
-            pendingInvites.push({
-                org,
-                login: invite.login,
-                email: invite.email,
-                created_at: invite.created_at
+                enterprise,
+                page: lastPage
             });
+            const orgsData = response.enterprise.organizations;
+            lastPage = orgsData.pageInfo.endCursor;
+            hasNextPage = orgsData.pageInfo.hasNextPage;
+            for (const org of orgsData.nodes) {
+                orgs.push(org.login);
+            }
         }
-    }
-    // Sort them by created_at
-    return pendingInvites.sort((a, b) => a.created_at.localeCompare(b.created_at));
+        return orgs;
+    });
 }
-async function getMembersFromOrgs(orgs, octokit) {
-    const members = new Map();
-    for (const org of orgs) {
-        let lastPage;
-        let hasNextPage = true;
-        while (hasNextPage) {
-            const response = await octokit.graphql(`query($org: String!, $page: String) {
+function getPendingInvitesFromOrgs(orgs, octokit) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pendingInvites = [];
+        for (const org of orgs) {
+            const response = yield octokit.paginate(octokit.rest.orgs.listPendingInvitations, {
+                org
+            });
+            for (const invite of response) {
+                pendingInvites.push({
+                    org,
+                    login: invite.login,
+                    email: invite.email,
+                    created_at: invite.created_at
+                });
+            }
+        }
+        // Sort them by created_at
+        return pendingInvites.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    });
+}
+function getMembersFromOrgs(orgs, octokit) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const members = new Map();
+        for (const org of orgs) {
+            let lastPage;
+            let hasNextPage = true;
+            while (hasNextPage) {
+                const response = yield octokit.graphql(`query($org: String!, $page: String) {
                     organization(login: $org) {
                       members: membersWithRole(first: 100, after: $page) {
                         pageInfo {
@@ -7882,38 +7896,40 @@ async function getMembersFromOrgs(orgs, octokit) {
                     }
                   }
                 `, {
-                org,
-                page: lastPage
-            });
-            const membersData = response.organization.members;
-            lastPage = membersData.pageInfo.endCursor;
-            hasNextPage = membersData.pageInfo.hasNextPage;
-            for (const member of membersData.nodes) {
-                const existingMember = members.get(member.login);
-                if (existingMember) {
-                    // Only append the email and the org
-                    for (const email of member.emails) {
-                        if (existingMember.emails.includes(email)) {
-                            existingMember.emails.push(email);
+                    org,
+                    page: lastPage
+                });
+                const membersData = response.organization.members;
+                lastPage = membersData.pageInfo.endCursor;
+                hasNextPage = membersData.pageInfo.hasNextPage;
+                for (const member of membersData.nodes) {
+                    const existingMember = members.get(member.login);
+                    if (existingMember) {
+                        // Only append the email and the org
+                        for (const email of member.emails) {
+                            if (existingMember.emails.includes(email)) {
+                                existingMember.emails.push(email);
+                            }
                         }
+                        existingMember.orgs.push(org);
                     }
-                    existingMember.orgs.push(org);
-                }
-                else {
-                    // Create a new item
-                    members.set(member.login, { ...member, orgs: [org], type: types_Membership.MEMBER });
+                    else {
+                        // Create a new item
+                        members.set(member.login, Object.assign(Object.assign({}, member), { orgs: [org], type: types_Membership.MEMBER }));
+                    }
                 }
             }
         }
-    }
-    return Array.from(members.values());
+        return Array.from(members.values());
+    });
 }
-async function getOutsideCollaborators(enterprise, octokit) {
-    const collaborators = [];
-    let lastPage = null;
-    let hasNextPage = true;
-    while (hasNextPage) {
-        const response = await octokit.graphql(`query($enterprise: String!, $lastPage: String) {
+function getOutsideCollaborators(enterprise, octokit) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const collaborators = [];
+        let lastPage = null;
+        let hasNextPage = true;
+        while (hasNextPage) {
+            const response = yield octokit.graphql(`query($enterprise: String!, $lastPage: String) {
         enterprise(slug: $enterprise) {
           ownerInfo {
             outsideCollaborators(last: 100, after: $lastPage) {
@@ -7937,49 +7953,52 @@ async function getOutsideCollaborators(enterprise, octokit) {
           }
         }
       }`, {
-            enterprise,
-            lastPage
-        });
-        hasNextPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.hasNextPage;
-        lastPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.endCursor;
-        const members = response.enterprise.ownerInfo.outsideCollaborators.edges.map(item => {
-            // Get the unique set of owners from the name of the repos
-            const orgs = Array.from(new Set(item.repositories.nodes.map(node => node.nameWithOwner.split('/')[0])));
-            return {
-                orgs,
-                login: item.node.login,
-                emails: [item.node.email],
-                type: types_Membership.OUTSISE_COLLABORATOR
-            };
-        });
-        collaborators.push(...members);
-    }
-    return collaborators;
+                enterprise,
+                lastPage
+            });
+            hasNextPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.hasNextPage;
+            lastPage = response.enterprise.ownerInfo.outsideCollaborators.pageInfo.endCursor;
+            const members = response.enterprise.ownerInfo.outsideCollaborators.edges.map(item => {
+                // Get the unique set of owners from the name of the repos
+                const orgs = Array.from(new Set(item.repositories.nodes.map(node => node.nameWithOwner.split('/')[0])));
+                return {
+                    orgs,
+                    login: item.node.login,
+                    emails: [item.node.email],
+                    type: types_Membership.OUTSISE_COLLABORATOR
+                };
+            });
+            collaborators.push(...members);
+        }
+        return collaborators;
+    });
 }
-async function getOutsideCollaborator(orgs, octokit) {
-    const collaborators = new Map();
-    for (const org of orgs) {
-        const data = await octokit.paginate(octokit.rest.orgs.listOutsideCollaborators, {
-            org
-        });
-        for (const collaborator of data) {
-            if (collaborator !== null) {
-                const existingCollaborator = collaborators.get(collaborator.login);
-                if (existingCollaborator) {
-                    existingCollaborator.orgs.push(org);
-                }
-                else {
-                    collaborators.set(collaborator.login, {
-                        login: collaborator.login,
-                        emails: [],
-                        orgs: [org],
-                        type: Membership.OUTSISE_COLLABORATOR
-                    });
+function getOutsideCollaborator(orgs, octokit) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const collaborators = new Map();
+        for (const org of orgs) {
+            const data = yield octokit.paginate(octokit.rest.orgs.listOutsideCollaborators, {
+                org
+            });
+            for (const collaborator of data) {
+                if (collaborator !== null) {
+                    const existingCollaborator = collaborators.get(collaborator.login);
+                    if (existingCollaborator) {
+                        existingCollaborator.orgs.push(org);
+                    }
+                    else {
+                        collaborators.set(collaborator.login, {
+                            login: collaborator.login,
+                            emails: [],
+                            orgs: [org],
+                            type: Membership.OUTSISE_COLLABORATOR
+                        });
+                    }
                 }
             }
         }
-    }
-    return Array.from(collaborators.values());
+        return Array.from(collaborators.values());
+    });
 }
 
 ;// CONCATENATED MODULE: ./src/markdown/markdown-table.ts
@@ -8132,27 +8151,38 @@ const getMarkdownTable = (params) => {
 
 
 ;// CONCATENATED MODULE: ./src/reporter.ts
-
-
-
-
-
-async function generateReport(params) {
-    const octokit = new dist_node/* Octokit */.v({
-        auth: params.token
+var reporter_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-    const orgs = await getOrgsForEnterprise(params.enterprise, octokit);
-    const members = await getMembersFromOrgs(orgs, octokit);
-    const outsideCollaborators = await getOutsideCollaborators(params.enterprise, octokit);
-    const pendingInvites = await getPendingInvitesFromOrgs(orgs, octokit);
-    switch (params.format) {
-        case OutputFormat.MARKDOWN:
-            return getMarkdownFormat(members, outsideCollaborators, pendingInvites);
-        case OutputFormat.HTML:
-            return getHtmlFormat(members, outsideCollaborators, pendingInvites);
-        case OutputFormat.JSON:
-            return getJSONFormat(members, outsideCollaborators, pendingInvites);
-    }
+};
+
+
+
+
+
+function generateReport(params) {
+    return reporter_awaiter(this, void 0, void 0, function* () {
+        const octokit = new dist_node/* Octokit */.v({
+            auth: params.token
+        });
+        const orgs = yield getOrgsForEnterprise(params.enterprise, octokit);
+        const members = yield getMembersFromOrgs(orgs, octokit);
+        const outsideCollaborators = yield getOutsideCollaborators(params.enterprise, octokit);
+        const pendingInvites = yield getPendingInvitesFromOrgs(orgs, octokit);
+        switch (params.format) {
+            case OutputFormat.MARKDOWN:
+                return getMarkdownFormat(members, outsideCollaborators, pendingInvites);
+            case OutputFormat.HTML:
+                return getHtmlFormat(members, outsideCollaborators, pendingInvites);
+            case OutputFormat.JSON:
+                return getJSONFormat(members, outsideCollaborators, pendingInvites);
+        }
+    });
 }
 function getMarkdownFormat(members, outsideCollaborators, pendingInvites) {
     // Generate the members table
@@ -8193,29 +8223,40 @@ function getJSONFormat(members, outsideCollaborators, pendingInvites) {
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
+var main_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 
 
 
-async function run() {
-    try {
-        const token = core.getInput('token', { required: true });
-        const enterprise = core.getInput('enterprise', { required: true });
-        const formatString = core.getInput('format', { required: true });
-        const format = OutputFormat[formatString.toUpperCase()];
-        if (!format) {
-            throw new Error(`Invalid format: ${formatString}`);
+function run() {
+    return main_awaiter(this, void 0, void 0, function* () {
+        try {
+            const token = core.getInput('token', { required: true });
+            const enterprise = core.getInput('enterprise', { required: true });
+            const formatString = core.getInput('format', { required: true });
+            const format = OutputFormat[formatString.toUpperCase()];
+            if (format === undefined) {
+                throw new Error(`Invalid format: ${formatString}`);
+            }
+            const params = {
+                token,
+                enterprise,
+                format
+            };
+            const report = yield generateReport(params);
+            core.setOutput('data', report);
         }
-        const params = {
-            token,
-            enterprise,
-            format
-        };
-        const report = await generateReport(params);
-        core.setOutput('data', report);
-    }
-    catch (error) {
-        core.setFailed(error.message);
-    }
+        catch (error) {
+            core.setFailed(error.message);
+        }
+    });
 }
 run();
 
