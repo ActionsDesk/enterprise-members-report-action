@@ -42,7 +42,7 @@ jobs:
       uses: ActionsDesk/enterprise-members-report-action@latest
       with:
         # Remember GITHUB_TOKEN doesn't work here as we require to have access to the enterprise
-        token: {{ secrets.TOKEN }} 
+        token: ${{ secrets.TOKEN }} 
         enterprise: avocado-corp
         format: 'html'
     # Then use ${{ steps.report.outputs.data }} to store/send the report somewhere
