@@ -1,4 +1,4 @@
-# Email license report action
+# Enterprise members report action
 
 Action to generate a report as markdown, html or json with the members, outside collaborators and pending invites.
 
