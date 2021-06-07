@@ -1,5 +1,5 @@
-name: 'email-license-report-action'
-description: 'Generates and sends an email to a list of email addresses with the report of users in an enterprise'
+name: 'enterprise-members-report-action'
+description: 'Generates the report of organization members in an enterprise, outside collaborators and pending invitations as markdown, html or json'
 author: 'GitHub'
 inputs:
   token:
