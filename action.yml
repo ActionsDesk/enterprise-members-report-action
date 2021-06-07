@@ -1,5 +1,5 @@
 name: 'enterprise-members-report-action'
-description: 'Generates the report of organization members in an enterprise, outside collaborators and pending invitations as markdown, html or json'
+description: 'Generates the report of organization members in an enterprise, outside collaborators and pending invitations'
 author: 'GitHub'
 inputs:
   token:
