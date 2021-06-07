@@ -1,7 +1,7 @@
 {
-    "name": "email-license-report-action",
-    "version": "1.0.0",
-    "description": "Generates and sends an email to a list of email addresses with the report of users in an enterprise",
+    "name": "enterprise-members-report-action",
+    "version": "1.0.1",
+    "description": "Action to generate a report as markdown, html or json with the members, outside collaborators and pending invites",
     "keywords": [
         "actions",
         "email",
@@ -22,10 +22,10 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/ActionsDest/email-license-report-action.git"
+        "url": "git+https://github.com/ActionsDest/enterprise-members-report-action.git"
     },
     "bugs": {
-        "url": "https://github.com/ActionsDest/email-license-report-action/issues"
+        "url": "https://github.com/ActionsDest/enterprise-members-report-action/issues"
     },
     "publishConfig": {
         "registry": "https://npm.pkg.github.com/"
