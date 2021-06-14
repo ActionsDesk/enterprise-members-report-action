@@ -47,7 +47,7 @@
         "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
     },
     "dependencies": {
-        "@actions/core": "^1.2.6",
+        "@actions/core": "^1.4.0",
         "@actions/github": "^5.0.0",
         "@octokit/rest": "^18.5.6",
         "csv-string": "^4.0.1",
@@ -55,11 +55,11 @@
     },
     "devDependencies": {
         "@github/prettier-config": "^0.0.4",
-        "@octokit/types": "^6.16.2",
+        "@octokit/types": "^6.16.4",
         "@types/jest": "^26.0.23",
         "@types/marked": "^2.0.3",
         "@types/node": "^15.12.2",
-        "@typescript-eslint/parser": "^4.26.0",
+        "@typescript-eslint/parser": "^4.26.1",
         "@vercel/ncc": "^0.28.6",
         "eslint": "^7.28.0",
         "eslint-plugin-github": "^4.1.3",
