@@ -49,12 +49,12 @@ export async function getPendingInvitesFromOrgs(orgs: string[], octokit: Octokit
         org,
         login: invite.login,
         email: invite.email,
-        created_at: invite.created_at
+        createdAt: invite.created_at
       })
     }
   }
   // Sort them by created_at
-  return pendingInvites.sort((a, b) => a.created_at.localeCompare(b.created_at))
+  return pendingInvites.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 }
 
 export async function getMembersFromOrgs(orgs: string[], octokit: Octokit): Promise<OrgMember[]> {
@@ -73,6 +73,7 @@ export async function getMembersFromOrgs(orgs: string[], octokit: Octokit): Prom
                         }
                         nodes {
                           login
+                          createdAt
                           emails: organizationVerifiedDomainEmails(login: $org)
                         }
                       }
@@ -99,7 +100,7 @@ export async function getMembersFromOrgs(orgs: string[], octokit: Octokit): Prom
           existingMember.orgs.push(org)
         } else {
           // Create a new item
-          members.set(member.login, {...member, orgs: [org], type: Membership.MEMBER})
+          members.set(member.login, {...member, orgs: [org], createdAt: member.createdAt, type: Membership.MEMBER})
         }
       }
     }
@@ -131,6 +132,7 @@ export async function getOutsideCollaborators(enterprise: string, octokit: Octok
                 node {
                   login
                   email
+                  createdAt
                 }
               }
             }
@@ -153,6 +155,7 @@ export async function getOutsideCollaborators(enterprise: string, octokit: Octok
         orgs,
         login: item.node.login,
         emails: [item.node.email],
+        createdAt: item.node.createdAt,
         type: Membership.OUTSISE_COLLABORATOR
       }
     })
@@ -160,29 +163,4 @@ export async function getOutsideCollaborators(enterprise: string, octokit: Octok
   }
 
   return collaborators
-}
-
-export async function getOutsideCollaborator(orgs: string[], octokit: Octokit): Promise<OrgMember[]> {
-  const collaborators: Map<string, OrgMember> = new Map()
-  for (const org of orgs) {
-    const data = await octokit.paginate(octokit.rest.orgs.listOutsideCollaborators, {
-      org
-    })
-    for (const collaborator of data) {
-      if (collaborator !== null) {
-        const existingCollaborator = collaborators.get(collaborator.login)
-        if (existingCollaborator) {
-          existingCollaborator.orgs.push(org)
-        } else {
-          collaborators.set(collaborator.login, {
-            login: collaborator.login,
-            emails: [],
-            orgs: [org],
-            type: Membership.OUTSISE_COLLABORATOR
-          })
-        }
-      }
-    }
-  }
-  return Array.from(collaborators.values())
 }

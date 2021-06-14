@@ -1,6 +1,6 @@
 # Enterprise members report action
 
-Action to generate a report as markdown, html or json with the members, outside collaborators and pending invites.
+Action to generate a report as markdown, html, csv or json with the members, outside collaborators and pending invites.
 
 ## Description
 
@@ -13,11 +13,11 @@ This action generates a report for an enterprise with the following elements:
 
 This actions has the following inputs:
 
-| Parameter  | Description                                                                                    | Default | Is Required |
-|------------|------------------------------------------------------------------------------------------------|---------|-------------|
-| token      | A personal access token with permissions on all the orgs of the enterprise                     | None    | ✅           |
-| enterprise | The enterprise where we want to generate the report                                            | None    | ✅           |
-| format     | Determines how the output parameter will be formatted. Supports: `json`, `markdown` and `html` | None    | ✅           |
+| Parameter  | Description                                                                                           | Default | Is Required |
+|------------|-------------------------------------------------------------------------------------------------------|---------|-------------|
+| token      | A personal access token with permissions on all the orgs of the enterprise                            | None    | ✅           |
+| enterprise | The enterprise where we want to generate the report                                                   | None    | ✅           |
+| format     | Determines how the output parameter will be formatted. Supports: `json`, `markdown`, `csv` and `html` | None    | ✅           |
 
 This action has the following outputs:
 

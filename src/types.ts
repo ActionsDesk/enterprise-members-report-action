@@ -2,7 +2,8 @@
 export enum OutputFormat {
   HTML,
   MARKDOWN,
-  JSON
+  JSON,
+  CSV
 }
 
 export type FormatParams = {
@@ -23,14 +24,15 @@ export type OrgLogin = {
 export type PendingInvite = {
   org: string
   login?: string
-  email: string
-  created_at: string
+  email?: string
+  createdAt: string
 }
 
 // eslint-disable-next-line no-shadow
 export enum Membership {
   MEMBER = 'member',
-  OUTSISE_COLLABORATOR = 'outside collaborator'
+  OUTSISE_COLLABORATOR = 'outside collaborator',
+  PENDING_INVITE = 'pending invite'
 }
 
 export type OrgMember = {
@@ -38,6 +40,7 @@ export type OrgMember = {
   login: string
   emails: string[]
   type: Membership
+  createdAt: string
 }
 
 type PageInfo = {
@@ -62,6 +65,7 @@ export type GetMembersResponse = {
         {
           login: string
           emails: string[]
+          createdAt: string
         }
       ]
     }
@@ -80,6 +84,7 @@ export type OutsideCollaborator = {
   node: {
     login: string
     email: string
+    createdAt: string
   }
 }
 export type GetOutsideCollaborators = {
