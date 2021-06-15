@@ -3103,6 +3103,508 @@ function removeHook(state, name, method) {
 
 /***/ }),
 
+/***/ 978:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var Parser_1 = __nccwpck_require__(780);
+var Streamer_1 = __nccwpck_require__(847);
+var EOL = '\r\n';
+exports.eol = EOL;
+var SEPARATOR = ',';
+exports.separator = SEPARATOR;
+var quoteCharReqex = new RegExp('"', 'g');
+var specialCharReqex = new RegExp('["\r\n]', 'g');
+var _shouldBeQuoted = function (value, sep) {
+    return value.search(specialCharReqex) >= 0 || value.includes(sep);
+};
+var _quoteIfRquired = function (value, sep) {
+    return _shouldBeQuoted(value, sep)
+        ? '"' + value.replace(quoteCharReqex, '""') + '"'
+        : value;
+};
+var _stringifySingleValue = function (item) {
+    if (item === 0) {
+        item = '0';
+    }
+    else if (item === undefined || item === null) {
+        item = '';
+    }
+    if (typeof item != 'string') {
+        var s = item.toString();
+        if (s == '[object Object]') {
+            item = JSON.stringify(item);
+            if (item == '{}') {
+                item = '';
+            }
+        }
+        else {
+            item = s;
+        }
+    }
+    return item;
+};
+var reducer = function (item, memo, sep, prependSep) {
+    item = _stringifySingleValue(item);
+    return ((memo !== undefined || prependSep ? "" + memo + sep : '') +
+        _quoteIfRquired(item, sep));
+};
+var detect = function (input) {
+    var separators = [',', ';', '|', '\t'];
+    var idx = separators
+        .map(function (separator) { return input.indexOf(separator); })
+        .reduce(function (prev, cur) {
+        return prev === -1 || (cur !== -1 && cur < prev) ? cur : prev;
+    });
+    return (input[idx] || ',');
+};
+exports.detect = detect;
+var stringify = function (input, sep) {
+    if (sep === void 0) { sep = SEPARATOR; }
+    var ret;
+    sep = sep || SEPARATOR;
+    if (Array.isArray(input)) {
+        if (input.length === 0) {
+            ret = EOL;
+        }
+        else if (!Array.isArray(input[0])) {
+            for (var loop = 0; loop < input.length; loop++) {
+                ret = reducer(input[loop], ret, sep, loop > 0);
+            }
+            ret += EOL;
+        }
+        else if (Array.isArray(input[0])) {
+            ret = input.map(function (item) { return stringify(item, sep); }).join('');
+        }
+    }
+    else if (typeof input == 'object') {
+        for (var key in input) {
+            if (input.hasOwnProperty(key)) {
+                ret = reducer(input[key], ret, sep);
+            }
+        }
+        ret += EOL;
+    }
+    else {
+        ret = reducer(input, ret, sep) + EOL;
+    }
+    return ret;
+};
+exports.stringify = stringify;
+var parse = function (input, sep, quo) {
+    if (sep === undefined) {
+        // try to detect the separator if not provided
+        sep = detect(input);
+    }
+    var csv = new Parser_1.Parser(input, sep, quo);
+    return csv.File();
+};
+exports.parse = parse;
+function read(input, sep, quo, callback) {
+    if (callback === undefined) {
+        if (quo === undefined) {
+            // arguments.length < 3) {
+            if (typeof sep !== 'function') {
+                throw Error('Last/second argument is not a callback');
+            }
+            callback = sep;
+            sep = ',';
+        }
+        else {
+            // arguments.length < 4) {
+            if (typeof quo !== 'function') {
+                throw Error('Last/third argument is not a callback');
+            }
+            callback = quo;
+            quo = '"';
+        }
+    }
+    var csv = new Parser_1.Parser(input, sep, quo);
+    var fields = csv.Row();
+    callback(fields);
+    return csv.pointer;
+}
+exports.read = read;
+function forEach(input, sep, quo, callback) {
+    if (callback === undefined) {
+        if (quo === undefined) {
+            // arguments.length < 3) {
+            if (typeof sep !== 'function') {
+                throw Error('Last/second argument is not a callback');
+            }
+            callback = sep;
+            sep = ',';
+        }
+        else {
+            // arguments.length < 4) {
+            if (typeof quo !== 'function') {
+                throw Error('Last/third argument is not a callback');
+            }
+            callback = quo;
+            quo = '"';
+        }
+    }
+    var i = 0;
+    var s = 0;
+    var r;
+    while ((r = read(input.slice(s), sep, quo, function (fields) {
+        return callback(fields, i++);
+    }))) {
+        s += r;
+    }
+}
+exports.forEach = forEach;
+function readAll(input, sep, quo, callback) {
+    if (callback === undefined) {
+        if (quo === undefined) {
+            // arguments.length < 3) {
+            if (typeof sep !== 'function') {
+                throw Error('Last/second argument is not a callback');
+            }
+            callback = sep;
+            sep = ',';
+        }
+        else {
+            // arguments.length < 4) {
+            if (typeof quo !== 'function') {
+                throw Error('Last/third argument is not a callback');
+            }
+            callback = quo;
+            quo = '"';
+        }
+    }
+    var csv = new Parser_1.Parser(input, sep, quo);
+    var rows = csv.File();
+    callback(rows);
+    return csv.pointer;
+}
+exports.readAll = readAll;
+function readChunk(input, sep, quo, callback) {
+    if (callback === undefined) {
+        if (quo === undefined) {
+            // arguments.length < 3) {
+            if (typeof sep !== 'function') {
+                throw Error('Last/second argument is not a callback');
+            }
+            callback = sep;
+            sep = ',';
+        }
+        else {
+            // arguments.length < 4) {
+            if (typeof quo !== 'function') {
+                throw Error('Last/third argument is not a callback');
+            }
+            callback = quo;
+            quo = '"';
+        }
+    }
+    var csv = new Parser_1.Parser(input, sep, quo);
+    var rows = csv.File();
+    var ret = 0;
+    if (csv.pointer < input.length) {
+        ret = csv.pointer;
+    }
+    else {
+        rows.pop();
+        ret = csv.linePointer;
+    }
+    callback(rows);
+    return ret;
+}
+exports.readChunk = readChunk;
+var fetch = function (input, sep, quo) {
+    // TODO
+    var output;
+    read(input, sep, quo, function (fields) {
+        output = fields;
+    });
+    return output;
+};
+exports.fetch = fetch;
+var createStream = function (options) { return new Streamer_1.Streamer(options); };
+exports.createStream = createStream;
+
+
+/***/ }),
+
+/***/ 780:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+/*
+file:         row + EOF;
+row:          value (Comma value)* (LineBreak | EOF);
+value:        SimpleValue | QuotedValue;
+Comma:        ',';
+LineBreak:    '\r'?'\n' | '\r';
+SimpleValue:  ~(',' | '\r' | '\n' | '"')+;
+QuotedValue:  Residue '"' ('""' | ~'"')* '"' Residue;
+Residue:      (' ' | '\t' | '\f')*
+*/
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var Parser = /** @class */ (function () {
+    function Parser(input, comma, quote) {
+        if (!(this instanceof Parser)) {
+            return new Parser(input, comma);
+        }
+        this.input = input;
+        this.pointer = 0;
+        this.linePointer = 0;
+        this.comma = (comma && comma[0]) || ',';
+        this.quote = (quote && quote[0]) || '"';
+        // initialize RegExp Object
+        var residueChars = ' \f\v\u00a0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000';
+        if (this.comma !== '\t') {
+            residueChars += '\t';
+        }
+        this._residueRegExp = new RegExp("[^" + residueChars + "]");
+        // TODO: `(${this.comma}|\r\n)` instead?
+        this._simpleValueRegExp = new RegExp("[" + this.comma + "\r\n]");
+        this._replaceQuoteRegExp = new RegExp(this.quote + this.quote, 'g');
+    }
+    Parser.prototype.File = function () {
+        var files = [];
+        var row;
+        while (true) {
+            var tempointer = this.pointer;
+            row = this.Row();
+            if (row.length > 0) {
+                this.linePointer = tempointer;
+                files.push(row);
+            }
+            else {
+                if (this.linePointer && this.pointer !== this.input.length) {
+                    files.pop();
+                    this.pointer = this.linePointer;
+                }
+                break;
+            }
+            if (this.EOF()) {
+                if (this.linePointer && this.pointer !== this.input.length) {
+                    files.pop();
+                    this.pointer = this.linePointer;
+                }
+                break;
+            }
+        }
+        return files;
+    };
+    Parser.prototype.Row = function () {
+        var row = [];
+        while (true) {
+            row.push(this.Value());
+            if (this.Comma()) {
+                continue;
+            }
+            if (this.LineBreak() || this.EOF()) {
+                return row;
+            }
+            else {
+                row.pop();
+                return row;
+            }
+        }
+    };
+    Parser.prototype.Value = function () {
+        var residue = this.Residue();
+        var quotedvalue = this.QuotedValue();
+        if (quotedvalue) {
+            var value = quotedvalue
+                .slice(1, -1)
+                .replace(this._replaceQuoteRegExp, this.quote);
+            this.Residue();
+            return value;
+        }
+        var simplevalue = this.SimpleValue();
+        if (simplevalue) {
+            return residue ? residue + simplevalue : simplevalue;
+        }
+        return '';
+    };
+    Parser.prototype.Comma = function () {
+        if (this.input.slice(this.pointer, this.pointer + this.comma.length) ===
+            this.comma) {
+            this.pointer += this.comma.length;
+            return this.comma;
+        }
+    };
+    Parser.prototype.LineBreak = function () {
+        if (this.input.slice(this.pointer, this.pointer + 2) === '\r\n') {
+            this.pointer += 2;
+            return '\r\n';
+        }
+        if (this.input.charAt(this.pointer) === '\n') {
+            this.pointer += 1;
+            return '\n';
+        }
+        if (this.input.charAt(this.pointer) === '\r') {
+            this.pointer += 1;
+            return '\r';
+        }
+    };
+    Parser.prototype.SimpleValue = function () {
+        var value = '';
+        var index = this.input
+            .slice(this.pointer)
+            .search(this._simpleValueRegExp);
+        if (this.input.charAt(this.pointer) === this.quote) {
+            return;
+        }
+        else if (index === -1) {
+            value = this.input.slice(this.pointer);
+        }
+        else if (index === 0) {
+            return;
+        }
+        else {
+            value = this.input.slice(this.pointer, this.pointer + index);
+        }
+        this.pointer += value.length;
+        return value;
+    };
+    Parser.prototype.QuotedValue = function () {
+        if (this.input.charAt(this.pointer) === this.quote) {
+            var searchIndex = void 0;
+            var index = 1;
+            while (true) {
+                searchIndex = this.input.slice(this.pointer + index).search(this.quote);
+                if (searchIndex === -1) {
+                    return;
+                }
+                if (this.input.charAt(this.pointer + index + searchIndex + 1) ===
+                    this.quote) {
+                    index += searchIndex + 2;
+                    continue;
+                }
+                var value = this.input.slice(this.pointer, this.pointer + index + searchIndex + 1);
+                this.pointer += value.length;
+                return value;
+            }
+        }
+    };
+    Parser.prototype.EOF = function () {
+        return this.pointer >= this.input.length;
+    };
+    Parser.prototype.Residue = function () {
+        var value = '';
+        var index = this.input.slice(this.pointer).search(this._residueRegExp);
+        if (index === -1) {
+            value = this.input.slice(this.pointer);
+        }
+        else if (index === 0) {
+            return '';
+        }
+        else {
+            value = this.input.slice(this.pointer, this.pointer + index);
+        }
+        this.pointer += value.length;
+        return value;
+    };
+    return Parser;
+}());
+exports.Parser = Parser;
+
+
+/***/ }),
+
+/***/ 847:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var stream_1 = __nccwpck_require__(413);
+var CSV_1 = __nccwpck_require__(978);
+var Parser_1 = __nccwpck_require__(780);
+var Streamer = /** @class */ (function (_super) {
+    __extends(Streamer, _super);
+    function Streamer(options) {
+        var _this = _super.call(this, {
+            readableObjectMode: true,
+            writableObjectMode: false,
+        }) || this;
+        // Transform.call(this, );
+        _this.buffer = '';
+        _this.sep = options && options.separator;
+        _this.quo = options && options.quote;
+        return _this;
+    }
+    // overridden function with same signature
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Streamer.prototype._transform = function (chunk, _encoding, callback) {
+        var _this = this;
+        this.buffer = this.buffer.concat(chunk.toString());
+        if (this.sep === undefined) {
+            // try to detect the separator if not provided
+            this.sep = CSV_1.detect(this.buffer);
+        }
+        var csv = new Parser_1.Parser(this.buffer, this.sep, this.quo);
+        var rows = csv.File();
+        if (csv.linePointer !== csv.pointer) {
+            rows.pop();
+        }
+        this.buffer = this.buffer.slice(csv.linePointer);
+        if (rows.length > 0) {
+            rows.forEach(function (row) {
+                _this.push(row);
+            });
+        }
+        callback();
+    };
+    // TODO
+    /*
+    push(chunk: any, encoding?: string | undefined): boolean {
+      throw new Error("Method not implemented.");
+    }
+    */
+    Streamer.prototype._flush = function (callback) {
+        var _this = this;
+        var csv = new Parser_1.Parser(this.buffer, this.sep, this.quo);
+        var rows = csv.File();
+        if (rows.length > 0) {
+            rows.forEach(function (row) {
+                _this.push(row);
+            });
+        }
+        callback();
+    };
+    return Streamer;
+}(stream_1.Transform));
+exports.Streamer = Streamer;
+
+
+/***/ }),
+
+/***/ 365:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+}
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__export(__nccwpck_require__(978));
+
+
+/***/ }),
+
 /***/ 932:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -7795,6 +8297,8 @@ var dist_node = __nccwpck_require__(375);
 // EXTERNAL MODULE: ./node_modules/marked/src/marked.js
 var marked = __nccwpck_require__(223);
 var marked_default = /*#__PURE__*/__nccwpck_require__.n(marked);
+// EXTERNAL MODULE: ./node_modules/csv-string/dist/index.js
+var dist = __nccwpck_require__(365);
 ;// CONCATENATED MODULE: ./src/types.ts
 // eslint-disable-next-line no-shadow
 var OutputFormat;
@@ -7802,13 +8306,15 @@ var OutputFormat;
     OutputFormat[OutputFormat["HTML"] = 0] = "HTML";
     OutputFormat[OutputFormat["MARKDOWN"] = 1] = "MARKDOWN";
     OutputFormat[OutputFormat["JSON"] = 2] = "JSON";
+    OutputFormat[OutputFormat["CSV"] = 3] = "CSV";
 })(OutputFormat || (OutputFormat = {}));
 // eslint-disable-next-line no-shadow
-var types_Membership;
+var Membership;
 (function (Membership) {
     Membership["MEMBER"] = "member";
     Membership["OUTSISE_COLLABORATOR"] = "outside collaborator";
-})(types_Membership || (types_Membership = {}));
+    Membership["PENDING_INVITE"] = "pending invite";
+})(Membership || (Membership = {}));
 
 ;// CONCATENATED MODULE: ./src/api/github-api.ts
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -7866,12 +8372,12 @@ function getPendingInvitesFromOrgs(orgs, octokit) {
                     org,
                     login: invite.login,
                     email: invite.email,
-                    created_at: invite.created_at
+                    createdAt: invite.created_at
                 });
             }
         }
         // Sort them by created_at
-        return pendingInvites.sort((a, b) => a.created_at.localeCompare(b.created_at));
+        return pendingInvites.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     });
 }
 function getMembersFromOrgs(orgs, octokit) {
@@ -7890,6 +8396,7 @@ function getMembersFromOrgs(orgs, octokit) {
                         }
                         nodes {
                           login
+                          createdAt
                           emails: organizationVerifiedDomainEmails(login: $org)
                         }
                       }
@@ -7915,7 +8422,7 @@ function getMembersFromOrgs(orgs, octokit) {
                     }
                     else {
                         // Create a new item
-                        members.set(member.login, Object.assign(Object.assign({}, member), { orgs: [org], type: types_Membership.MEMBER }));
+                        members.set(member.login, Object.assign(Object.assign({}, member), { orgs: [org], createdAt: member.createdAt, type: Membership.MEMBER }));
                     }
                 }
             }
@@ -7947,6 +8454,7 @@ function getOutsideCollaborators(enterprise, octokit) {
                 node {
                   login
                   email
+                  createdAt
                 }
               }
             }
@@ -7965,39 +8473,13 @@ function getOutsideCollaborators(enterprise, octokit) {
                     orgs,
                     login: item.node.login,
                     emails: [item.node.email],
-                    type: types_Membership.OUTSISE_COLLABORATOR
+                    createdAt: item.node.createdAt,
+                    type: Membership.OUTSISE_COLLABORATOR
                 };
             });
             collaborators.push(...members);
         }
         return collaborators;
-    });
-}
-function getOutsideCollaborator(orgs, octokit) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const collaborators = new Map();
-        for (const org of orgs) {
-            const data = yield octokit.paginate(octokit.rest.orgs.listOutsideCollaborators, {
-                org
-            });
-            for (const collaborator of data) {
-                if (collaborator !== null) {
-                    const existingCollaborator = collaborators.get(collaborator.login);
-                    if (existingCollaborator) {
-                        existingCollaborator.orgs.push(org);
-                    }
-                    else {
-                        collaborators.set(collaborator.login, {
-                            login: collaborator.login,
-                            emails: [],
-                            orgs: [org],
-                            type: Membership.OUTSISE_COLLABORATOR
-                        });
-                    }
-                }
-            }
-        }
-        return Array.from(collaborators.values());
     });
 }
 
@@ -8165,6 +8647,7 @@ var reporter_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+
 function generateReport(params) {
     return reporter_awaiter(this, void 0, void 0, function* () {
         const octokit = new dist_node/* Octokit */.v({
@@ -8181,6 +8664,8 @@ function generateReport(params) {
                 return getHtmlFormat(members, outsideCollaborators, pendingInvites);
             case OutputFormat.JSON:
                 return getJSONFormat(members, outsideCollaborators, pendingInvites);
+            case OutputFormat.CSV:
+                return getCSVFormat(members, outsideCollaborators, pendingInvites);
         }
     });
 }
@@ -8189,15 +8674,25 @@ function getMarkdownFormat(members, outsideCollaborators, pendingInvites) {
     const allMembers = members.concat(outsideCollaborators);
     const membersContent = getMarkdownTable({
         table: {
-            head: ['Login', 'Emails', 'Orgs', 'Membership'],
-            body: [...allMembers.map(item => [item.login, item.emails.join(','), item.orgs.join(','), item.type.toString()])]
+            head: ['Login', 'Emails', 'Orgs', 'Membership', 'Created At'],
+            body: [
+                ...allMembers.map(item => [
+                    item.login,
+                    item.emails.join(','),
+                    item.orgs.join(','),
+                    item.type.toString(),
+                    item.createdAt
+                ])
+            ]
         }
     });
     // Generate the pending invites table
     const pendingInvitesContent = getMarkdownTable({
         table: {
             head: ['Login', 'Email', 'Org', 'Created At'],
-            body: [...pendingInvites.map(item => [item.login || 'Not registered', item.email, item.org, item.created_at])]
+            body: [
+                ...pendingInvites.map(item => [item.login || 'No account', item.email || 'No email', item.org, item.createdAt])
+            ]
         }
     });
     return `
@@ -8220,6 +8715,30 @@ function getJSONFormat(members, outsideCollaborators, pendingInvites) {
         outsideCollaborators,
         pendingInvites
     });
+}
+function getCSVFormat(members, outsideCollaborators, pendingInvites) {
+    // Map pending invites into org members as CSVs can only have one file
+    const pendingInviteMembers = pendingInvites.map(item => {
+        return {
+            login: item.login || 'No account',
+            orgs: [item.org],
+            emails: item.email ? [item.email] : [],
+            createdAt: item.createdAt,
+            type: Membership.PENDING_INVITE
+        };
+    });
+    const allMembers = members.concat(outsideCollaborators).concat(pendingInviteMembers);
+    const membersContent = [
+        ['Login', 'Emails', 'Orgs', 'Membership', 'Created At'],
+        ...allMembers.map(item => [
+            item.login,
+            item.emails.join(','),
+            item.orgs.join(','),
+            item.type.toString(),
+            item.createdAt
+        ])
+    ];
+    return dist.stringify(membersContent);
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
