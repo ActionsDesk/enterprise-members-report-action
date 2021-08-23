@@ -47,7 +47,7 @@
         "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
     },
     "dependencies": {
-        "@actions/core": "^1.4.0",
+        "@actions/core": "^1.5.0",
         "@actions/github": "^5.0.0",
         "@octokit/rest": "^18.9.1",
         "csv-string": "^4.0.1",
@@ -59,8 +59,8 @@
         "@types/jest": "^27.0.1",
         "@types/marked": "^2.0.4",
         "@types/node": "^16.7.1",
-        "@typescript-eslint/parser": "^4.29.1",
-        "@vercel/ncc": "^0.29.1",
+        "@typescript-eslint/parser": "^4.29.2",
+        "@vercel/ncc": "^0.29.2",
         "eslint": "^7.32.0",
         "eslint-plugin-github": "^4.2.0",
         "eslint-plugin-jest": "^24.4.0",
