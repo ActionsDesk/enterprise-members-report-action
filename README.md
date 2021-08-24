@@ -23,8 +23,7 @@ This action has the following outputs:
 
 | Parameter | Description                                                                                                   |
 |-----------|---------------------------------------------------------------------------------------------------------------|
-| data      | he data extracted from the license API calls in the format specified. The type of the output is always string |
-
+| data      | The data extracted from the license API calls in the format specified. The type of the output is always string |
 
 Here you can see a workflow example using this action:
 
@@ -50,3 +49,11 @@ jobs:
     # Then use ${{ steps.report.outputs.data }} to store/send the report somewhere
     - run: echo '${{ steps.report.outputs.data }}'
 ```
+
+## Token permissions
+
+The required scopes for this action to run are:
+- `admin:enterprise`
+- `admin:org`
+- `read:user`
+- `user:email`
