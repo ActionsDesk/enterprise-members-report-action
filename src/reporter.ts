@@ -48,7 +48,7 @@ function getMarkdownFormat(
           .map(item => [
             item.login,
             // Make sure the email only appears once
-            Array.from(new Set(item.emails)).join(','),
+            [...new Set(item.emails)].join(','),
             item.orgs.join(','),
             item.type.toString(),
             item.createdAt
