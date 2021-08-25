@@ -76,8 +76,7 @@ function getMarkdownFormat(
 
 
   ### Pending invites
-  ${pendingInvites.length > 0 ? pendingInvitesContent : '**No pending invites**'}
-  `
+  ${pendingInvites.length > 0 ? pendingInvitesContent : '**No pending invites**'}`
 }
 
 function getHtmlFormat(

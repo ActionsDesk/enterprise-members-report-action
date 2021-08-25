@@ -9103,7 +9103,7 @@ function getMarkdownFormat(members, outsideCollaborators, pendingInvites) {
                     .map(item => [
                     item.login,
                     // Make sure the email only appears once
-                    Array.from(new Set(item.emails)).join(','),
+                    [...new Set(item.emails)].join(','),
                     item.orgs.join(','),
                     item.type.toString(),
                     item.createdAt
@@ -9130,8 +9130,7 @@ function getMarkdownFormat(members, outsideCollaborators, pendingInvites) {
 
 
   ### Pending invites
-  ${pendingInvites.length > 0 ? pendingInvitesContent : '**No pending invites**'}
-  `;
+  ${pendingInvites.length > 0 ? pendingInvitesContent : '**No pending invites**'}`;
 }
 function getHtmlFormat(members, outsideCollaborators, pendingInvites) {
     return marked_default()(getMarkdownFormat(members, outsideCollaborators, pendingInvites));
@@ -9163,7 +9162,7 @@ function getCSVFormat(members, outsideCollaborators, pendingInvites) {
         ...allMembers.map(item => [
             item.login,
             // Make sure the email only appears once
-            Array.from(new Set(item.emails)).join(','),
+            [...new Set(item.emails)].join(','),
             item.orgs.join(','),
             item.type.toString(),
             item.createdAt
