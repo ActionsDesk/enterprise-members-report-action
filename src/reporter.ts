@@ -1,14 +1,14 @@
-import {Octokit} from '@octokit/rest'
-import marked from 'marked'
 import * as CSV from 'csv-string'
+import {ActionParams, Membership, OrgMember, OutputFormat, PendingInvite} from './types'
 import {
   getMembersFromOrgs,
   getOrgsForEnterprise,
   getOutsideCollaborators,
   getPendingInvitesFromOrgs
 } from './api/github-api'
+import {Octokit} from '@octokit/rest'
 import {getMarkdownTable} from './markdown/markdown-table'
-import {ActionParams, OutputFormat, OrgMember, PendingInvite, Membership} from './types'
+import marked from 'marked'
 
 export async function generateReport(params: ActionParams): Promise<string> {
   const octokit = new Octokit({
@@ -43,13 +43,16 @@ function getMarkdownFormat(
     table: {
       head: ['Login', 'Emails', 'Orgs', 'Membership', 'Created At'],
       body: [
-        ...allMembers.map(item => [
-          item.login,
-          item.emails.join(','),
-          item.orgs.join(','),
-          item.type.toString(),
-          item.createdAt
-        ])
+        ...allMembers
+          .sort((a, b) => a.login.localeCompare(b.login))
+          .map(item => [
+            item.login,
+            // Make sure the email only appears once
+            Array.from(new Set(item.emails)).join(','),
+            item.orgs.join(','),
+            item.type.toString(),
+            item.createdAt
+          ])
       ]
     }
   })
@@ -59,7 +62,9 @@ function getMarkdownFormat(
     table: {
       head: ['Login', 'Email', 'Org', 'Created At'],
       body: [
-        ...pendingInvites.map(item => [item.login || 'No account', item.email || 'No email', item.org, item.createdAt])
+        ...pendingInvites
+          .sort((a, b) => a.login?.localeCompare(b.login || 'No account') || -1) // Sort by login
+          .map(item => [item.login || 'No account', item.email || 'No email', item.org, item.createdAt]) // Map invites
       ]
     }
   })
@@ -110,12 +115,18 @@ function getCSVFormat(
       type: Membership.PENDING_INVITE
     }
   })
-  const allMembers = members.concat(outsideCollaborators).concat(pendingInviteMembers)
+
+  const allMembers = members
+    .concat(outsideCollaborators)
+    .concat(pendingInviteMembers)
+    .sort((a, b) => a.login.localeCompare(b.login))
+
   const membersContent = [
     ['Login', 'Emails', 'Orgs', 'Membership', 'Created At'],
     ...allMembers.map(item => [
       item.login,
-      item.emails.join(','),
+      // Make sure the email only appears once
+      Array.from(new Set(item.emails)).join(','),
       item.orgs.join(','),
       item.type.toString(),
       item.createdAt
