@@ -1,6 +1,6 @@
-import type {Octokit} from '@octokit/rest'
-import type {GetOrgsResponse, PendingInvite, OrgMember, GetMembersResponse, GetOutsideCollaborators} from '../types'
+import type {GetMembersResponse, GetOrgsResponse, GetOutsideCollaborators, OrgMember, PendingInvite} from '../types'
 import {Membership} from '../types'
+import type {Octokit} from '@octokit/rest'
 
 export async function getOrgsForEnterprise(enterprise: string, octokit: Octokit): Promise<string[]> {
   let lastPage: string | null | undefined = null
@@ -47,8 +47,8 @@ export async function getPendingInvitesFromOrgs(orgs: string[], octokit: Octokit
     for (const invite of response) {
       pendingInvites.push({
         org,
-        login: invite.login,
-        email: invite.email,
+        login: invite.login || '',
+        email: invite.email || '',
         createdAt: invite.created_at
       })
     }

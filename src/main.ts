@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
-import {generateReport} from './reporter'
 import {ActionParams, OutputFormat} from './types'
+import {generateReport} from './reporter'
 
 async function run(): Promise<void> {
   try {
