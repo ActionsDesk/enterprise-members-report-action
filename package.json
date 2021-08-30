@@ -57,7 +57,7 @@
         "@github/prettier-config": "^0.0.4",
         "@octokit/types": "^6.25.0",
         "@types/jest": "^27.0.1",
-        "@types/marked": "^2.0.4",
+        "@types/marked": "^3.0.0",
         "@types/node": "^16.7.1",
         "@typescript-eslint/parser": "^4.29.2",
         "@vercel/ncc": "^0.29.2",
