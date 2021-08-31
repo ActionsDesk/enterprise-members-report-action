@@ -9,10 +9,14 @@ import {
 import {Octokit} from '@octokit/rest'
 import {getMarkdownTable} from './markdown/markdown-table'
 import marked from 'marked'
+const ProxyAgent = require('proxy-agent')
 
 export async function generateReport(params: ActionParams): Promise<string> {
   const octokit = new Octokit({
-    auth: params.token
+    auth: params.token,
+    request: {
+      agent: new ProxyAgent()
+    }
   })
 
   const orgs = await getOrgsForEnterprise(params.enterprise, octokit)

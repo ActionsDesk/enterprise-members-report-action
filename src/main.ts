@@ -19,7 +19,7 @@ async function run(): Promise<void> {
     }
     const report = await generateReport(params)
     core.setOutput('data', report)
-  } catch (error) {
+  } catch (error: any) {
     core.setFailed(error.message)
   }
 }

@@ -51,7 +51,8 @@
         "@actions/github": "^5.0.0",
         "@octokit/rest": "^18.9.1",
         "csv-string": "^4.0.1",
-        "marked": "^3.0.2"
+        "marked": "^3.0.2",
+        "proxy-agent": "^5.0.0"
     },
     "devDependencies": {
         "@github/prettier-config": "^0.0.4",
