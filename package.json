@@ -49,17 +49,17 @@
     "dependencies": {
         "@actions/core": "^1.5.0",
         "@actions/github": "^5.0.0",
-        "@octokit/rest": "^18.9.1",
+        "@octokit/rest": "^18.10.0",
         "csv-string": "^4.0.1",
         "marked": "^3.0.2"
     },
     "devDependencies": {
         "@github/prettier-config": "^0.0.4",
-        "@octokit/types": "^6.25.0",
+        "@octokit/types": "^6.27.0",
         "@types/jest": "^27.0.1",
         "@types/marked": "^3.0.0",
         "@types/node": "^16.7.10",
-        "@typescript-eslint/parser": "^4.29.2",
+        "@typescript-eslint/parser": "^4.30.0",
         "@vercel/ncc": "^0.30.0",
         "eslint": "^7.32.0",
         "eslint-plugin-github": "^4.2.0",
