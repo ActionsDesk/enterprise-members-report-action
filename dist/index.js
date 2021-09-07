@@ -51135,6 +51135,9 @@ const getMarkdownTable = (params) => {
 // EXTERNAL MODULE: ./node_modules/marked/src/marked.js
 var marked = __nccwpck_require__(4223);
 var marked_default = /*#__PURE__*/__nccwpck_require__.n(marked);
+// EXTERNAL MODULE: ./node_modules/proxy-agent/index.js
+var proxy_agent = __nccwpck_require__(7367);
+var proxy_agent_default = /*#__PURE__*/__nccwpck_require__.n(proxy_agent);
 ;// CONCATENATED MODULE: ./src/reporter.ts
 var reporter_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -51151,13 +51154,13 @@ var reporter_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
-const ProxyAgent = __nccwpck_require__(7367);
+
 function generateReport(params) {
     return reporter_awaiter(this, void 0, void 0, function* () {
         const octokit = new dist_node/* Octokit */.v({
             auth: params.token,
             request: {
-                agent: new ProxyAgent()
+                agent: new (proxy_agent_default())()
             }
         });
         const orgs = yield getOrgsForEnterprise(params.enterprise, octokit);
