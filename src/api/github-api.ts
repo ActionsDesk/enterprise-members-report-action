@@ -1,8 +1,7 @@
+import {ActionOctokit, Membership} from '../types'
 import type {GetMembersResponse, GetOrgsResponse, GetOutsideCollaborators, OrgMember, PendingInvite} from '../types'
-import {Membership} from '../types'
-import type {Octokit} from '@octokit/rest'
 
-export async function getOrgsForEnterprise(enterprise: string, octokit: Octokit): Promise<string[]> {
+export async function getOrgsForEnterprise(enterprise: string, octokit: ActionOctokit): Promise<string[]> {
   let lastPage: string | null | undefined = null
   let hasNextPage = true
   const orgs: string[] = []
@@ -38,7 +37,7 @@ export async function getOrgsForEnterprise(enterprise: string, octokit: Octokit)
   return orgs
 }
 
-export async function getPendingInvitesFromOrgs(orgs: string[], octokit: Octokit): Promise<PendingInvite[]> {
+export async function getPendingInvitesFromOrgs(orgs: string[], octokit: ActionOctokit): Promise<PendingInvite[]> {
   const pendingInvites: PendingInvite[] = []
   for (const org of orgs) {
     const response = await octokit.paginate(octokit.rest.orgs.listPendingInvitations, {
@@ -57,7 +56,7 @@ export async function getPendingInvitesFromOrgs(orgs: string[], octokit: Octokit
   return pendingInvites.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 }
 
-export async function getMembersFromOrgs(orgs: string[], octokit: Octokit): Promise<OrgMember[]> {
+export async function getMembersFromOrgs(orgs: string[], octokit: ActionOctokit): Promise<OrgMember[]> {
   const members: Map<string, OrgMember> = new Map()
   for (const org of orgs) {
     let lastPage: string | null | undefined
@@ -108,7 +107,7 @@ export async function getMembersFromOrgs(orgs: string[], octokit: Octokit): Prom
   return Array.from(members.values())
 }
 
-export async function getOutsideCollaborators(enterprise: string, octokit: Octokit): Promise<OrgMember[]> {
+export async function getOutsideCollaborators(enterprise: string, octokit: ActionOctokit): Promise<OrgMember[]> {
   const collaborators: OrgMember[] = []
   let lastPage: string | null | undefined = null
   let hasNextPage = true
