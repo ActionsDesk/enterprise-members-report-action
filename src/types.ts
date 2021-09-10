@@ -11,7 +11,6 @@ export type FormatParams = {
 }
 
 export type ApiParams = {
-  token: string
   enterprise: string
 }
 

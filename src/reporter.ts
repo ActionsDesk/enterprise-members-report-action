@@ -6,14 +6,12 @@ import {
   getOutsideCollaborators,
   getPendingInvitesFromOrgs
 } from './api/github-api'
-import {Octokit} from '@octokit/rest'
+import {Octokit} from '@octokit/action'
 import {getMarkdownTable} from './markdown/markdown-table'
 import marked from 'marked'
 
 export async function generateReport(params: ActionParams): Promise<string> {
-  const octokit = new Octokit({
-    auth: params.token
-  })
+  const octokit = new Octokit()
 
   const orgs = await getOrgsForEnterprise(params.enterprise, octokit)
   const members = await getMembersFromOrgs(orgs, octokit)

@@ -1,6 +1,6 @@
 import type {GetMembersResponse, GetOrgsResponse, GetOutsideCollaborators, OrgMember, PendingInvite} from '../types'
 import {Membership} from '../types'
-import type {Octokit} from '@octokit/rest'
+import {Octokit} from '@octokit/action'
 
 export async function getOrgsForEnterprise(enterprise: string, octokit: Octokit): Promise<string[]> {
   let lastPage: string | null | undefined = null
