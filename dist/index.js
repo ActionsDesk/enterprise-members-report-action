@@ -575,7 +575,7 @@ function _defineProperty(obj, key, value) {
   return obj;
 }
 
-const VERSION = "3.15.3";
+const VERSION = "3.15.4";
 
 const DEFAULTS = {
   authStrategy: authAction.createActionAuth,
