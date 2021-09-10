@@ -6,7 +6,9 @@ import {generateReport} from './reporter'
     process.env['GITHUB_ACTION'] = 'test'
     const actionParams: ActionParams = {
       enterprise: 'droidpl',
-      format: OutputFormat.MARKDOWN
+      format: OutputFormat.MARKDOWN,
+      licenseUsage: process.env.LICENSE_USAGE,
+      licenseUsageChanged: process.env.LICENSE_USAGE_CHANGED
     }
 
     const output = await generateReport(actionParams)

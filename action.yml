@@ -8,6 +8,12 @@ inputs:
   format:
     required: true
     description: 'Determines how the output parameter will be formatted. Supports: json, markdown, csv and html'
+  licenseUsage:
+    required: false
+    description: 'Will merge in the output from an enterprise license usage csv available from https://github.com/enterprises/{{enterprise}}/enterprise_licensing/download_consumed_licenses'
+  licenseUsageChanged:
+    required: false
+    description: 'When the license usage data was generated so that it can be included in the reports'
 outputs:
   data: 
     description: 'The data extracted from the license API calls in the format specified. The type of the output is always string'
