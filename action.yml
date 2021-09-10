@@ -2,9 +2,6 @@ name: 'enterprise-members-report-action'
 description: 'Generates the report of organization members in an enterprise, outside collaborators and pending invitations'
 author: 'GitHub'
 inputs:
-  token:
-    required: true
-    description: 'A personal access token with permissions on all the orgs of the enterprise'
   enterprise:
     required: true
     description: 'The enterprise where we want to generate the report'

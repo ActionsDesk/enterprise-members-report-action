@@ -41,9 +41,10 @@ jobs:
     - name: Generate report
       id: report
       uses: ActionsDesk/enterprise-members-report-action@latest
+      env:
+        // The default GITHUB_TOKEN from actions doesn't work here as it does not have enough permissions
+        GITHUB_TOKEN: ${{ secrets.YOUR_SECRET_TOKEN }}
       with:
-        # Remember GITHUB_TOKEN doesn't work here as we require to have access to the enterprise
-        token: ${{ secrets.TOKEN }} 
         enterprise: avocado-corp
         format: 'html'
     # Then use ${{ steps.report.outputs.data }} to store/send the report somewhere
