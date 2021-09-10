@@ -1,6 +1,3 @@
-import {Octokit} from '@octokit/action'
-export declare type ActionOctokit = InstanceType<typeof Octokit>
-
 // eslint-disable-next-line no-shadow
 export enum OutputFormat {
   HTML,
