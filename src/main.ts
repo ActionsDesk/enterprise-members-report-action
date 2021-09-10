@@ -4,9 +4,9 @@ import {generateReport} from './reporter'
 
 async function run(): Promise<void> {
   try {
-    // Get the token and add it as the environment variable in case it wasn't provided this way
-    const token: string = core.getInput('token', {required: true})
-    process.env['GITHUB_TOKEN'] = token
+    // @octokit/auth-action will read the token from either the environment variable GITHUB_TOKEN if set
+    // or from the parameter named token. It should only be specified in one place.
+    // See https://github.com/octokit/auth-action.js#createactionauth for details.
 
     // Get the rest of the action params
     const enterprise: string = core.getInput('enterprise', {required: true})
