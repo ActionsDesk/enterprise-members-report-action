@@ -10722,9 +10722,9 @@ var main_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arg
 function run() {
     return main_awaiter(this, void 0, void 0, function* () {
         try {
-            // Get the token and add it as the environment variable in case it wasn't provided this way
-            const token = core.getInput('token', { required: true });
-            process.env['GITHUB_TOKEN'] = token;
+            // @octokit/auth-action will read the token from either the environment variable GITHUB_TOKEN if set
+            // or from the parameter named token. It should only be specified in one place.
+            // See https://github.com/octokit/auth-action.js#createactionauth for details.
             // Get the rest of the action params
             const enterprise = core.getInput('enterprise', { required: true });
             const formatString = core.getInput('format', { required: true });
