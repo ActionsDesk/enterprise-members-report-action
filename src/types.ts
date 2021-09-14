@@ -14,7 +14,12 @@ export type ApiParams = {
   enterprise: string
 }
 
-export type ActionParams = ApiParams & FormatParams
+export type LicenseParams = {
+  licenseUsage?: string
+  licenseUsageChanged?: string
+}
+
+export type ActionParams = ApiParams & FormatParams & LicenseParams
 
 export type OrgLogin = {
   login: string
@@ -95,4 +100,11 @@ export type GetOutsideCollaborators = {
       }
     }
   }
+}
+
+export type LicenseUsage = {
+  name: string
+  login: string
+  url: string
+  license: string
 }

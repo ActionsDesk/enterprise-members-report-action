@@ -11,6 +11,8 @@ async function run(): Promise<void> {
     // Get the rest of the action params
     const enterprise: string = core.getInput('enterprise', {required: true})
     const formatString: string = core.getInput('format', {required: true})
+    const licenseUsage: string = core.getInput('licenseusage', {required: false})
+    const licenseUsageChanged: string = core.getInput('licenseusagechanged', {required: false})
     const format: OutputFormat = OutputFormat[formatString.toUpperCase() as keyof typeof OutputFormat]
     if (format === undefined) {
       throw new Error(`Invalid format: ${formatString}`)
@@ -18,7 +20,9 @@ async function run(): Promise<void> {
 
     const params: ActionParams = {
       enterprise,
-      format
+      format,
+      licenseUsage,
+      licenseUsageChanged
     }
     const report = await generateReport(params)
     core.setOutput('data', report)
