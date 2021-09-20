@@ -37,6 +37,7 @@ jobs:
         run: |
           git status --porcelain
           if [[ `git status --porcelain` ]]; then
+            git diff
             echo "You forgot running the pack command 🤦!"
             exit 1
           else
