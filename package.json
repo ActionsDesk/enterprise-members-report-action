@@ -14,11 +14,13 @@
         "email": "services@github.com",
         "url": "https://services.github.com"
     },
-    "contributors": [{
-        "name": "Javier de Pedro López",
-        "email": "droidpl@github.com",
-        "url": "https://github.com/droidpl"
-    }],
+    "contributors": [
+        {
+            "name": "Javier de Pedro López",
+            "email": "droidpl@github.com",
+            "url": "https://github.com/droidpl"
+        }
+    ],
     "license": "MIT",
     "repository": {
         "type": "git",
