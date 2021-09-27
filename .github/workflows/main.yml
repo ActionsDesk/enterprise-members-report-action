@@ -36,6 +36,7 @@ jobs:
       - name: Check for run changes
         run: |
           git status --porcelain
+          cat dist/index.js
           if [[ `git status --porcelain` ]]; then
             echo "You forgot running the pack command 🤦!"
             exit 1
