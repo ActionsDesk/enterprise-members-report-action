@@ -52,7 +52,7 @@
         "@octokit/action": "^3.15.4",
         "csv-parse": "^4.16.3",
         "csv-string": "^4.0.1",
-        "marked": "^3.0.4"
+        "marked": "^3.0.8"
     },
     "devDependencies": {
         "@github/prettier-config": "^0.0.4",
