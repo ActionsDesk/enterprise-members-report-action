@@ -1,5 +1,5 @@
 import * as CSV from 'csv-string'
-import {ActionParams, Membership, OrgMember, OutputFormat, PendingInvite, LicenseUsage} from './types'
+import {ActionParams, LicenseUsage, Membership, OrgMember, OutputFormat, PendingInvite} from './types'
 import {
   getMembersFromOrgs,
   getOrgsForEnterprise,
@@ -7,10 +7,10 @@ import {
   getPendingInvitesFromOrgs
 } from './api/github-api'
 import {Octokit} from '@octokit/action'
-import {getMarkdownTable} from './markdown/markdown-table'
-import marked from 'marked'
-import parse from 'csv-parse'
 import {Readable} from 'stream'
+import {getMarkdownTable} from './markdown/markdown-table'
+import {marked} from 'marked'
+import {parse} from 'csv-parse'
 
 export async function generateReport(params: ActionParams): Promise<string> {
   const octokit = new Octokit()
@@ -20,7 +20,7 @@ export async function generateReport(params: ActionParams): Promise<string> {
   const members = await getMembersFromOrgs(orgs, octokit)
   const outsideCollaborators = await getOutsideCollaborators(params.enterprise, octokit)
   const pendingInvites = await getPendingInvitesFromOrgs(orgs, octokit)
-  var licenseColumnTitle = 'License'
+  let licenseColumnTitle = 'License'
   if (params.licenseUsageChanged) {
     licenseColumnTitle = `License (${params.licenseUsageChanged})`
   }
@@ -190,12 +190,12 @@ async function loadLicenseUsage(licenseUsageContent?: string): Promise<LicenseUs
 }
 
 function getUserLicense(licenseUsage: LicenseUsage[], login?: string, email?: string): string {
-  var license: string = 'No License Found'
-  var userLicense: LicenseUsage | undefined
+  let license = 'No License Found'
+  let userLicense: LicenseUsage | undefined
 
-  if (login !== undefined && login != '' && login != 'No account') {
+  if (login !== undefined && login !== '' && login !== 'No account') {
     userLicense = licenseUsage.find(i => i.login === login)
-  } else if (email !== undefined && email != '') {
+  } else if (email !== undefined && email !== '') {
     userLicense = licenseUsage.find(i => i.login.toLowerCase() === email.toLowerCase())
   }
 
