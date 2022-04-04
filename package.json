@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@actions/core": "^1.6.0",
-    "@actions/github": "^5.0.0",
+    "@actions/github": "^5.0.1",
     "@octokit/action": "^3.18.0",
     "csv-parse": "^5.0.4",
     "csv-string": "^4.1.0",
