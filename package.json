@@ -59,7 +59,7 @@
     "@octokit/types": "^6.34.0",
     "@types/jest": "^27.4.1",
     "@types/marked": "^4.0.3",
-    "@types/node": "^17.0.26",
+    "@types/node": "^17.0.31",
     "@typescript-eslint/parser": "^5.20.0",
     "@vercel/ncc": "^0.33.4",
     "eslint": "^8.14.0",
