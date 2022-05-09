@@ -47,7 +47,7 @@
     "all": "npm run format && npm run test && npm run build"
   },
   "dependencies": {
-    "@actions/core": "^1.7.0",
+    "@actions/core": "^1.8.0",
     "@actions/github": "^5.0.1",
     "@octokit/action": "^3.18.0",
     "csv-parse": "^5.0.4",
