@@ -415,6 +415,16 @@ function getIDToken(aud) {
     });
 }
 exports.getIDToken = getIDToken;
+/**
+ * Summary exports
+ */
+var summary_1 = __nccwpck_require__(1327);
+Object.defineProperty(exports, "summary", ({ enumerable: true, get: function () { return summary_1.summary; } }));
+/**
+ * @deprecated use core.summary
+ */
+var summary_2 = __nccwpck_require__(1327);
+Object.defineProperty(exports, "markdownSummary", ({ enumerable: true, get: function () { return summary_2.markdownSummary; } }));
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -484,8 +494,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.OidcClient = void 0;
-const http_client_1 = __nccwpck_require__(9925);
-const auth_1 = __nccwpck_require__(3702);
+const http_client_1 = __nccwpck_require__(6255);
+const auth_1 = __nccwpck_require__(5526);
 const core_1 = __nccwpck_require__(2186);
 class OidcClient {
     static createHttpClient(allowRetry = true, maxRetry = 10) {
@@ -552,6 +562,296 @@ exports.OidcClient = OidcClient;
 
 /***/ }),
 
+/***/ 1327:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.summary = exports.markdownSummary = exports.SUMMARY_DOCS_URL = exports.SUMMARY_ENV_VAR = void 0;
+const os_1 = __nccwpck_require__(2037);
+const fs_1 = __nccwpck_require__(7147);
+const { access, appendFile, writeFile } = fs_1.promises;
+exports.SUMMARY_ENV_VAR = 'GITHUB_STEP_SUMMARY';
+exports.SUMMARY_DOCS_URL = 'https://docs.github.com/actions/using-workflows/workflow-commands-for-github-actions#adding-a-job-summary';
+class Summary {
+    constructor() {
+        this._buffer = '';
+    }
+    /**
+     * Finds the summary file path from the environment, rejects if env var is not found or file does not exist
+     * Also checks r/w permissions.
+     *
+     * @returns step summary file path
+     */
+    filePath() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this._filePath) {
+                return this._filePath;
+            }
+            const pathFromEnv = process.env[exports.SUMMARY_ENV_VAR];
+            if (!pathFromEnv) {
+                throw new Error(`Unable to find environment variable for $${exports.SUMMARY_ENV_VAR}. Check if your runtime environment supports job summaries.`);
+            }
+            try {
+                yield access(pathFromEnv, fs_1.constants.R_OK | fs_1.constants.W_OK);
+            }
+            catch (_a) {
+                throw new Error(`Unable to access summary file: '${pathFromEnv}'. Check if the file has correct read/write permissions.`);
+            }
+            this._filePath = pathFromEnv;
+            return this._filePath;
+        });
+    }
+    /**
+     * Wraps content in an HTML tag, adding any HTML attributes
+     *
+     * @param {string} tag HTML tag to wrap
+     * @param {string | null} content content within the tag
+     * @param {[attribute: string]: string} attrs key-value list of HTML attributes to add
+     *
+     * @returns {string} content wrapped in HTML element
+     */
+    wrap(tag, content, attrs = {}) {
+        const htmlAttrs = Object.entries(attrs)
+            .map(([key, value]) => ` ${key}="${value}"`)
+            .join('');
+        if (!content) {
+            return `<${tag}${htmlAttrs}>`;
+        }
+        return `<${tag}${htmlAttrs}>${content}</${tag}>`;
+    }
+    /**
+     * Writes text in the buffer to the summary buffer file and empties buffer. Will append by default.
+     *
+     * @param {SummaryWriteOptions} [options] (optional) options for write operation
+     *
+     * @returns {Promise<Summary>} summary instance
+     */
+    write(options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const overwrite = !!(options === null || options === void 0 ? void 0 : options.overwrite);
+            const filePath = yield this.filePath();
+            const writeFunc = overwrite ? writeFile : appendFile;
+            yield writeFunc(filePath, this._buffer, { encoding: 'utf8' });
+            return this.emptyBuffer();
+        });
+    }
+    /**
+     * Clears the summary buffer and wipes the summary file
+     *
+     * @returns {Summary} summary instance
+     */
+    clear() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.emptyBuffer().write({ overwrite: true });
+        });
+    }
+    /**
+     * Returns the current summary buffer as a string
+     *
+     * @returns {string} string of summary buffer
+     */
+    stringify() {
+        return this._buffer;
+    }
+    /**
+     * If the summary buffer is empty
+     *
+     * @returns {boolen} true if the buffer is empty
+     */
+    isEmptyBuffer() {
+        return this._buffer.length === 0;
+    }
+    /**
+     * Resets the summary buffer without writing to summary file
+     *
+     * @returns {Summary} summary instance
+     */
+    emptyBuffer() {
+        this._buffer = '';
+        return this;
+    }
+    /**
+     * Adds raw text to the summary buffer
+     *
+     * @param {string} text content to add
+     * @param {boolean} [addEOL=false] (optional) append an EOL to the raw text (default: false)
+     *
+     * @returns {Summary} summary instance
+     */
+    addRaw(text, addEOL = false) {
+        this._buffer += text;
+        return addEOL ? this.addEOL() : this;
+    }
+    /**
+     * Adds the operating system-specific end-of-line marker to the buffer
+     *
+     * @returns {Summary} summary instance
+     */
+    addEOL() {
+        return this.addRaw(os_1.EOL);
+    }
+    /**
+     * Adds an HTML codeblock to the summary buffer
+     *
+     * @param {string} code content to render within fenced code block
+     * @param {string} lang (optional) language to syntax highlight code
+     *
+     * @returns {Summary} summary instance
+     */
+    addCodeBlock(code, lang) {
+        const attrs = Object.assign({}, (lang && { lang }));
+        const element = this.wrap('pre', this.wrap('code', code), attrs);
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds an HTML list to the summary buffer
+     *
+     * @param {string[]} items list of items to render
+     * @param {boolean} [ordered=false] (optional) if the rendered list should be ordered or not (default: false)
+     *
+     * @returns {Summary} summary instance
+     */
+    addList(items, ordered = false) {
+        const tag = ordered ? 'ol' : 'ul';
+        const listItems = items.map(item => this.wrap('li', item)).join('');
+        const element = this.wrap(tag, listItems);
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds an HTML table to the summary buffer
+     *
+     * @param {SummaryTableCell[]} rows table rows
+     *
+     * @returns {Summary} summary instance
+     */
+    addTable(rows) {
+        const tableBody = rows
+            .map(row => {
+            const cells = row
+                .map(cell => {
+                if (typeof cell === 'string') {
+                    return this.wrap('td', cell);
+                }
+                const { header, data, colspan, rowspan } = cell;
+                const tag = header ? 'th' : 'td';
+                const attrs = Object.assign(Object.assign({}, (colspan && { colspan })), (rowspan && { rowspan }));
+                return this.wrap(tag, data, attrs);
+            })
+                .join('');
+            return this.wrap('tr', cells);
+        })
+            .join('');
+        const element = this.wrap('table', tableBody);
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds a collapsable HTML details element to the summary buffer
+     *
+     * @param {string} label text for the closed state
+     * @param {string} content collapsable content
+     *
+     * @returns {Summary} summary instance
+     */
+    addDetails(label, content) {
+        const element = this.wrap('details', this.wrap('summary', label) + content);
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds an HTML image tag to the summary buffer
+     *
+     * @param {string} src path to the image you to embed
+     * @param {string} alt text description of the image
+     * @param {SummaryImageOptions} options (optional) addition image attributes
+     *
+     * @returns {Summary} summary instance
+     */
+    addImage(src, alt, options) {
+        const { width, height } = options || {};
+        const attrs = Object.assign(Object.assign({}, (width && { width })), (height && { height }));
+        const element = this.wrap('img', null, Object.assign({ src, alt }, attrs));
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds an HTML section heading element
+     *
+     * @param {string} text heading text
+     * @param {number | string} [level=1] (optional) the heading level, default: 1
+     *
+     * @returns {Summary} summary instance
+     */
+    addHeading(text, level) {
+        const tag = `h${level}`;
+        const allowedTag = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)
+            ? tag
+            : 'h1';
+        const element = this.wrap(allowedTag, text);
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds an HTML thematic break (<hr>) to the summary buffer
+     *
+     * @returns {Summary} summary instance
+     */
+    addSeparator() {
+        const element = this.wrap('hr', null);
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds an HTML line break (<br>) to the summary buffer
+     *
+     * @returns {Summary} summary instance
+     */
+    addBreak() {
+        const element = this.wrap('br', null);
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds an HTML blockquote to the summary buffer
+     *
+     * @param {string} text quote text
+     * @param {string} cite (optional) citation url
+     *
+     * @returns {Summary} summary instance
+     */
+    addQuote(text, cite) {
+        const attrs = Object.assign({}, (cite && { cite }));
+        const element = this.wrap('blockquote', text, attrs);
+        return this.addRaw(element).addEOL();
+    }
+    /**
+     * Adds an HTML anchor tag to the summary buffer
+     *
+     * @param {string} text link text/content
+     * @param {string} href hyperlink
+     *
+     * @returns {Summary} summary instance
+     */
+    addLink(text, href) {
+        const element = this.wrap('a', text, { href });
+        return this.addRaw(element).addEOL();
+    }
+}
+const _summary = new Summary();
+/**
+ * @deprecated use `core.summary`
+ */
+exports.markdownSummary = _summary;
+exports.summary = _summary;
+//# sourceMappingURL=summary.js.map
+
+/***/ }),
+
 /***/ 5278:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -599,28 +899,41 @@ exports.toCommandProperties = toCommandProperties;
 
 /***/ }),
 
-/***/ 3702:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ 5526:
+/***/ (function(__unused_webpack_module, exports) {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PersonalAccessTokenCredentialHandler = exports.BearerCredentialHandler = exports.BasicCredentialHandler = void 0;
 class BasicCredentialHandler {
     constructor(username, password) {
         this.username = username;
         this.password = password;
     }
     prepareRequest(options) {
-        options.headers['Authorization'] =
-            'Basic ' +
-                Buffer.from(this.username + ':' + this.password).toString('base64');
+        if (!options.headers) {
+            throw Error('The request has no headers');
+        }
+        options.headers['Authorization'] = `Basic ${Buffer.from(`${this.username}:${this.password}`).toString('base64')}`;
     }
     // This handler cannot handle 401
-    canHandleAuthentication(response) {
+    canHandleAuthentication() {
         return false;
     }
-    handleAuthentication(httpClient, requestInfo, objs) {
-        return null;
+    handleAuthentication() {
+        return __awaiter(this, void 0, void 0, function* () {
+            throw new Error('not implemented');
+        });
     }
 }
 exports.BasicCredentialHandler = BasicCredentialHandler;
@@ -631,14 +944,19 @@ class BearerCredentialHandler {
     // currently implements pre-authorization
     // TODO: support preAuth = false where it hooks on 401
     prepareRequest(options) {
-        options.headers['Authorization'] = 'Bearer ' + this.token;
+        if (!options.headers) {
+            throw Error('The request has no headers');
+        }
+        options.headers['Authorization'] = `Bearer ${this.token}`;
     }
     // This handler cannot handle 401
-    canHandleAuthentication(response) {
+    canHandleAuthentication() {
         return false;
     }
-    handleAuthentication(httpClient, requestInfo, objs) {
-        return null;
+    handleAuthentication() {
+        return __awaiter(this, void 0, void 0, function* () {
+            throw new Error('not implemented');
+        });
     }
 }
 exports.BearerCredentialHandler = BearerCredentialHandler;
@@ -649,32 +967,66 @@ class PersonalAccessTokenCredentialHandler {
     // currently implements pre-authorization
     // TODO: support preAuth = false where it hooks on 401
     prepareRequest(options) {
-        options.headers['Authorization'] =
-            'Basic ' + Buffer.from('PAT:' + this.token).toString('base64');
+        if (!options.headers) {
+            throw Error('The request has no headers');
+        }
+        options.headers['Authorization'] = `Basic ${Buffer.from(`PAT:${this.token}`).toString('base64')}`;
     }
     // This handler cannot handle 401
-    canHandleAuthentication(response) {
+    canHandleAuthentication() {
         return false;
     }
-    handleAuthentication(httpClient, requestInfo, objs) {
-        return null;
+    handleAuthentication() {
+        return __awaiter(this, void 0, void 0, function* () {
+            throw new Error('not implemented');
+        });
     }
 }
 exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHandler;
-
+//# sourceMappingURL=auth.js.map
 
 /***/ }),
 
-/***/ 9925:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ 6255:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const http = __nccwpck_require__(3685);
-const https = __nccwpck_require__(5687);
-const pm = __nccwpck_require__(6443);
-let tunnel;
+exports.HttpClient = exports.isHttps = exports.HttpClientResponse = exports.HttpClientError = exports.getProxyUrl = exports.MediaTypes = exports.Headers = exports.HttpCodes = void 0;
+const http = __importStar(__nccwpck_require__(3685));
+const https = __importStar(__nccwpck_require__(5687));
+const pm = __importStar(__nccwpck_require__(9835));
+const tunnel = __importStar(__nccwpck_require__(4294));
 var HttpCodes;
 (function (HttpCodes) {
     HttpCodes[HttpCodes["OK"] = 200] = "OK";
@@ -719,7 +1071,7 @@ var MediaTypes;
  * @param serverUrl  The server URL where the request will be sent. For example, https://api.github.com
  */
 function getProxyUrl(serverUrl) {
-    let proxyUrl = pm.getProxyUrl(new URL(serverUrl));
+    const proxyUrl = pm.getProxyUrl(new URL(serverUrl));
     return proxyUrl ? proxyUrl.href : '';
 }
 exports.getProxyUrl = getProxyUrl;
@@ -752,20 +1104,22 @@ class HttpClientResponse {
         this.message = message;
     }
     readBody() {
-        return new Promise(async (resolve, reject) => {
-            let output = Buffer.alloc(0);
-            this.message.on('data', (chunk) => {
-                output = Buffer.concat([output, chunk]);
-            });
-            this.message.on('end', () => {
-                resolve(output.toString());
-            });
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
+                let output = Buffer.alloc(0);
+                this.message.on('data', (chunk) => {
+                    output = Buffer.concat([output, chunk]);
+                });
+                this.message.on('end', () => {
+                    resolve(output.toString());
+                });
+            }));
         });
     }
 }
 exports.HttpClientResponse = HttpClientResponse;
 function isHttps(requestUrl) {
-    let parsedUrl = new URL(requestUrl);
+    const parsedUrl = new URL(requestUrl);
     return parsedUrl.protocol === 'https:';
 }
 exports.isHttps = isHttps;
@@ -808,141 +1162,169 @@ class HttpClient {
         }
     }
     options(requestUrl, additionalHeaders) {
-        return this.request('OPTIONS', requestUrl, null, additionalHeaders || {});
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.request('OPTIONS', requestUrl, null, additionalHeaders || {});
+        });
     }
     get(requestUrl, additionalHeaders) {
-        return this.request('GET', requestUrl, null, additionalHeaders || {});
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.request('GET', requestUrl, null, additionalHeaders || {});
+        });
     }
     del(requestUrl, additionalHeaders) {
-        return this.request('DELETE', requestUrl, null, additionalHeaders || {});
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.request('DELETE', requestUrl, null, additionalHeaders || {});
+        });
     }
     post(requestUrl, data, additionalHeaders) {
-        return this.request('POST', requestUrl, data, additionalHeaders || {});
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.request('POST', requestUrl, data, additionalHeaders || {});
+        });
     }
     patch(requestUrl, data, additionalHeaders) {
-        return this.request('PATCH', requestUrl, data, additionalHeaders || {});
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.request('PATCH', requestUrl, data, additionalHeaders || {});
+        });
     }
     put(requestUrl, data, additionalHeaders) {
-        return this.request('PUT', requestUrl, data, additionalHeaders || {});
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.request('PUT', requestUrl, data, additionalHeaders || {});
+        });
     }
     head(requestUrl, additionalHeaders) {
-        return this.request('HEAD', requestUrl, null, additionalHeaders || {});
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.request('HEAD', requestUrl, null, additionalHeaders || {});
+        });
     }
     sendStream(verb, requestUrl, stream, additionalHeaders) {
-        return this.request(verb, requestUrl, stream, additionalHeaders);
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.request(verb, requestUrl, stream, additionalHeaders);
+        });
     }
     /**
      * Gets a typed object from an endpoint
      * Be aware that not found returns a null.  Other errors (4xx, 5xx) reject the promise
      */
-    async getJson(requestUrl, additionalHeaders = {}) {
-        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
-        let res = await this.get(requestUrl, additionalHeaders);
-        return this._processResponse(res, this.requestOptions);
+    getJson(requestUrl, additionalHeaders = {}) {
+        return __awaiter(this, void 0, void 0, function* () {
+            additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+            const res = yield this.get(requestUrl, additionalHeaders);
+            return this._processResponse(res, this.requestOptions);
+        });
     }
-    async postJson(requestUrl, obj, additionalHeaders = {}) {
-        let data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
-        let res = await this.post(requestUrl, data, additionalHeaders);
-        return this._processResponse(res, this.requestOptions);
+    postJson(requestUrl, obj, additionalHeaders = {}) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const data = JSON.stringify(obj, null, 2);
+            additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+            additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
+            const res = yield this.post(requestUrl, data, additionalHeaders);
+            return this._processResponse(res, this.requestOptions);
+        });
     }
-    async putJson(requestUrl, obj, additionalHeaders = {}) {
-        let data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
-        let res = await this.put(requestUrl, data, additionalHeaders);
-        return this._processResponse(res, this.requestOptions);
+    putJson(requestUrl, obj, additionalHeaders = {}) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const data = JSON.stringify(obj, null, 2);
+            additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+            additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
+            const res = yield this.put(requestUrl, data, additionalHeaders);
+            return this._processResponse(res, this.requestOptions);
+        });
     }
-    async patchJson(requestUrl, obj, additionalHeaders = {}) {
-        let data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
-        let res = await this.patch(requestUrl, data, additionalHeaders);
-        return this._processResponse(res, this.requestOptions);
+    patchJson(requestUrl, obj, additionalHeaders = {}) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const data = JSON.stringify(obj, null, 2);
+            additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+            additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
+            const res = yield this.patch(requestUrl, data, additionalHeaders);
+            return this._processResponse(res, this.requestOptions);
+        });
     }
     /**
      * Makes a raw http request.
      * All other methods such as get, post, patch, and request ultimately call this.
      * Prefer get, del, post and patch
      */
-    async request(verb, requestUrl, data, headers) {
-        if (this._disposed) {
-            throw new Error('Client has already been disposed.');
-        }
-        let parsedUrl = new URL(requestUrl);
-        let info = this._prepareRequest(verb, parsedUrl, headers);
-        // Only perform retries on reads since writes may not be idempotent.
-        let maxTries = this._allowRetries && RetryableHttpVerbs.indexOf(verb) != -1
-            ? this._maxRetries + 1
-            : 1;
-        let numTries = 0;
-        let response;
-        while (numTries < maxTries) {
-            response = await this.requestRaw(info, data);
-            // Check if it's an authentication challenge
-            if (response &&
-                response.message &&
-                response.message.statusCode === HttpCodes.Unauthorized) {
-                let authenticationHandler;
-                for (let i = 0; i < this.handlers.length; i++) {
-                    if (this.handlers[i].canHandleAuthentication(response)) {
-                        authenticationHandler = this.handlers[i];
-                        break;
-                    }
-                }
-                if (authenticationHandler) {
-                    return authenticationHandler.handleAuthentication(this, info, data);
-                }
-                else {
-                    // We have received an unauthorized response but have no handlers to handle it.
-                    // Let the response return to the caller.
-                    return response;
-                }
+    request(verb, requestUrl, data, headers) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this._disposed) {
+                throw new Error('Client has already been disposed.');
             }
-            let redirectsRemaining = this._maxRedirects;
-            while (HttpRedirectCodes.indexOf(response.message.statusCode) != -1 &&
-                this._allowRedirects &&
-                redirectsRemaining > 0) {
-                const redirectUrl = response.message.headers['location'];
-                if (!redirectUrl) {
-                    // if there's no location to redirect to, we won't
-                    break;
-                }
-                let parsedRedirectUrl = new URL(redirectUrl);
-                if (parsedUrl.protocol == 'https:' &&
-                    parsedUrl.protocol != parsedRedirectUrl.protocol &&
-                    !this._allowRedirectDowngrade) {
-                    throw new Error('Redirect from HTTPS to HTTP protocol. This downgrade is not allowed for security reasons. If you want to allow this behavior, set the allowRedirectDowngrade option to true.');
-                }
-                // we need to finish reading the response before reassigning response
-                // which will leak the open socket.
-                await response.readBody();
-                // strip authorization header if redirected to a different hostname
-                if (parsedRedirectUrl.hostname !== parsedUrl.hostname) {
-                    for (let header in headers) {
-                        // header names are case insensitive
-                        if (header.toLowerCase() === 'authorization') {
-                            delete headers[header];
+            const parsedUrl = new URL(requestUrl);
+            let info = this._prepareRequest(verb, parsedUrl, headers);
+            // Only perform retries on reads since writes may not be idempotent.
+            const maxTries = this._allowRetries && RetryableHttpVerbs.includes(verb)
+                ? this._maxRetries + 1
+                : 1;
+            let numTries = 0;
+            let response;
+            do {
+                response = yield this.requestRaw(info, data);
+                // Check if it's an authentication challenge
+                if (response &&
+                    response.message &&
+                    response.message.statusCode === HttpCodes.Unauthorized) {
+                    let authenticationHandler;
+                    for (const handler of this.handlers) {
+                        if (handler.canHandleAuthentication(response)) {
+                            authenticationHandler = handler;
+                            break;
                         }
                     }
+                    if (authenticationHandler) {
+                        return authenticationHandler.handleAuthentication(this, info, data);
+                    }
+                    else {
+                        // We have received an unauthorized response but have no handlers to handle it.
+                        // Let the response return to the caller.
+                        return response;
+                    }
                 }
-                // let's make the request with the new redirectUrl
-                info = this._prepareRequest(verb, parsedRedirectUrl, headers);
-                response = await this.requestRaw(info, data);
-                redirectsRemaining--;
-            }
-            if (HttpResponseRetryCodes.indexOf(response.message.statusCode) == -1) {
-                // If not a retry code, return immediately instead of retrying
-                return response;
-            }
-            numTries += 1;
-            if (numTries < maxTries) {
-                await response.readBody();
-                await this._performExponentialBackoff(numTries);
-            }
-        }
-        return response;
+                let redirectsRemaining = this._maxRedirects;
+                while (response.message.statusCode &&
+                    HttpRedirectCodes.includes(response.message.statusCode) &&
+                    this._allowRedirects &&
+                    redirectsRemaining > 0) {
+                    const redirectUrl = response.message.headers['location'];
+                    if (!redirectUrl) {
+                        // if there's no location to redirect to, we won't
+                        break;
+                    }
+                    const parsedRedirectUrl = new URL(redirectUrl);
+                    if (parsedUrl.protocol === 'https:' &&
+                        parsedUrl.protocol !== parsedRedirectUrl.protocol &&
+                        !this._allowRedirectDowngrade) {
+                        throw new Error('Redirect from HTTPS to HTTP protocol. This downgrade is not allowed for security reasons. If you want to allow this behavior, set the allowRedirectDowngrade option to true.');
+                    }
+                    // we need to finish reading the response before reassigning response
+                    // which will leak the open socket.
+                    yield response.readBody();
+                    // strip authorization header if redirected to a different hostname
+                    if (parsedRedirectUrl.hostname !== parsedUrl.hostname) {
+                        for (const header in headers) {
+                            // header names are case insensitive
+                            if (header.toLowerCase() === 'authorization') {
+                                delete headers[header];
+                            }
+                        }
+                    }
+                    // let's make the request with the new redirectUrl
+                    info = this._prepareRequest(verb, parsedRedirectUrl, headers);
+                    response = yield this.requestRaw(info, data);
+                    redirectsRemaining--;
+                }
+                if (!response.message.statusCode ||
+                    !HttpResponseRetryCodes.includes(response.message.statusCode)) {
+                    // If not a retry code, return immediately instead of retrying
+                    return response;
+                }
+                numTries += 1;
+                if (numTries < maxTries) {
+                    yield response.readBody();
+                    yield this._performExponentialBackoff(numTries);
+                }
+            } while (numTries < maxTries);
+            return response;
+        });
     }
     /**
      * Needs to be called if keepAlive is set to true in request options.
@@ -959,14 +1341,22 @@ class HttpClient {
      * @param data
      */
     requestRaw(info, data) {
-        return new Promise((resolve, reject) => {
-            let callbackForResult = function (err, res) {
-                if (err) {
-                    reject(err);
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                function callbackForResult(err, res) {
+                    if (err) {
+                        reject(err);
+                    }
+                    else if (!res) {
+                        // If `err` is not passed, then `res` must be passed.
+                        reject(new Error('Unknown error'));
+                    }
+                    else {
+                        resolve(res);
+                    }
                 }
-                resolve(res);
-            };
-            this.requestRawWithCallback(info, data, callbackForResult);
+                this.requestRawWithCallback(info, data, callbackForResult);
+            });
         });
     }
     /**
@@ -976,21 +1366,24 @@ class HttpClient {
      * @param onResult
      */
     requestRawWithCallback(info, data, onResult) {
-        let socket;
         if (typeof data === 'string') {
+            if (!info.options.headers) {
+                info.options.headers = {};
+            }
             info.options.headers['Content-Length'] = Buffer.byteLength(data, 'utf8');
         }
         let callbackCalled = false;
-        let handleResult = (err, res) => {
+        function handleResult(err, res) {
             if (!callbackCalled) {
                 callbackCalled = true;
                 onResult(err, res);
             }
-        };
-        let req = info.httpModule.request(info.options, (msg) => {
-            let res = new HttpClientResponse(msg);
-            handleResult(null, res);
+        }
+        const req = info.httpModule.request(info.options, (msg) => {
+            const res = new HttpClientResponse(msg);
+            handleResult(undefined, res);
         });
+        let socket;
         req.on('socket', sock => {
             socket = sock;
         });
@@ -999,12 +1392,12 @@ class HttpClient {
             if (socket) {
                 socket.end();
             }
-            handleResult(new Error('Request timeout: ' + info.options.path), null);
+            handleResult(new Error(`Request timeout: ${info.options.path}`));
         });
         req.on('error', function (err) {
             // err has statusCode property
             // res should have headers
-            handleResult(err, null);
+            handleResult(err);
         });
         if (data && typeof data === 'string') {
             req.write(data, 'utf8');
@@ -1025,7 +1418,7 @@ class HttpClient {
      * @param serverUrl  The server URL where the request will be sent. For example, https://api.github.com
      */
     getAgent(serverUrl) {
-        let parsedUrl = new URL(serverUrl);
+        const parsedUrl = new URL(serverUrl);
         return this._getAgent(parsedUrl);
     }
     _prepareRequest(method, requestUrl, headers) {
@@ -1049,21 +1442,19 @@ class HttpClient {
         info.options.agent = this._getAgent(info.parsedUrl);
         // gives handlers an opportunity to participate
         if (this.handlers) {
-            this.handlers.forEach(handler => {
+            for (const handler of this.handlers) {
                 handler.prepareRequest(info.options);
-            });
+            }
         }
         return info;
     }
     _mergeHeaders(headers) {
-        const lowercaseKeys = obj => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
         if (this.requestOptions && this.requestOptions.headers) {
-            return Object.assign({}, lowercaseKeys(this.requestOptions.headers), lowercaseKeys(headers));
+            return Object.assign({}, lowercaseKeys(this.requestOptions.headers), lowercaseKeys(headers || {}));
         }
         return lowercaseKeys(headers || {});
     }
     _getExistingOrDefaultHeader(additionalHeaders, header, _default) {
-        const lowercaseKeys = obj => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
         let clientHeader;
         if (this.requestOptions && this.requestOptions.headers) {
             clientHeader = lowercaseKeys(this.requestOptions.headers)[header];
@@ -1072,8 +1463,8 @@ class HttpClient {
     }
     _getAgent(parsedUrl) {
         let agent;
-        let proxyUrl = pm.getProxyUrl(parsedUrl);
-        let useProxy = proxyUrl && proxyUrl.hostname;
+        const proxyUrl = pm.getProxyUrl(parsedUrl);
+        const useProxy = proxyUrl && proxyUrl.hostname;
         if (this._keepAlive && useProxy) {
             agent = this._proxyAgent;
         }
@@ -1081,29 +1472,22 @@ class HttpClient {
             agent = this._agent;
         }
         // if agent is already assigned use that agent.
-        if (!!agent) {
+        if (agent) {
             return agent;
         }
         const usingSsl = parsedUrl.protocol === 'https:';
         let maxSockets = 100;
-        if (!!this.requestOptions) {
+        if (this.requestOptions) {
             maxSockets = this.requestOptions.maxSockets || http.globalAgent.maxSockets;
         }
-        if (useProxy) {
-            // If using proxy, need tunnel
-            if (!tunnel) {
-                tunnel = __nccwpck_require__(4294);
-            }
+        // This is `useProxy` again, but we need to check `proxyURl` directly for TypeScripts's flow analysis.
+        if (proxyUrl && proxyUrl.hostname) {
             const agentOptions = {
-                maxSockets: maxSockets,
+                maxSockets,
                 keepAlive: this._keepAlive,
-                proxy: {
-                    ...((proxyUrl.username || proxyUrl.password) && {
-                        proxyAuth: `${proxyUrl.username}:${proxyUrl.password}`
-                    }),
-                    host: proxyUrl.hostname,
-                    port: proxyUrl.port
-                }
+                proxy: Object.assign(Object.assign({}, ((proxyUrl.username || proxyUrl.password) && {
+                    proxyAuth: `${proxyUrl.username}:${proxyUrl.password}`
+                })), { host: proxyUrl.hostname, port: proxyUrl.port })
             };
             let tunnelAgent;
             const overHttps = proxyUrl.protocol === 'https:';
@@ -1118,7 +1502,7 @@ class HttpClient {
         }
         // if reusing agent across request and tunneling agent isn't assigned create a new agent
         if (this._keepAlive && !agent) {
-            const options = { keepAlive: this._keepAlive, maxSockets: maxSockets };
+            const options = { keepAlive: this._keepAlive, maxSockets };
             agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
             this._agent = agent;
         }
@@ -1137,109 +1521,117 @@ class HttpClient {
         return agent;
     }
     _performExponentialBackoff(retryNumber) {
-        retryNumber = Math.min(ExponentialBackoffCeiling, retryNumber);
-        const ms = ExponentialBackoffTimeSlice * Math.pow(2, retryNumber);
-        return new Promise(resolve => setTimeout(() => resolve(), ms));
+        return __awaiter(this, void 0, void 0, function* () {
+            retryNumber = Math.min(ExponentialBackoffCeiling, retryNumber);
+            const ms = ExponentialBackoffTimeSlice * Math.pow(2, retryNumber);
+            return new Promise(resolve => setTimeout(() => resolve(), ms));
+        });
     }
-    static dateTimeDeserializer(key, value) {
-        if (typeof value === 'string') {
-            let a = new Date(value);
-            if (!isNaN(a.valueOf())) {
-                return a;
-            }
-        }
-        return value;
-    }
-    async _processResponse(res, options) {
-        return new Promise(async (resolve, reject) => {
-            const statusCode = res.message.statusCode;
-            const response = {
-                statusCode: statusCode,
-                result: null,
-                headers: {}
-            };
-            // not found leads to null obj returned
-            if (statusCode == HttpCodes.NotFound) {
-                resolve(response);
-            }
-            let obj;
-            let contents;
-            // get the result from the body
-            try {
-                contents = await res.readBody();
-                if (contents && contents.length > 0) {
-                    if (options && options.deserializeDates) {
-                        obj = JSON.parse(contents, HttpClient.dateTimeDeserializer);
+    _processResponse(res, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                const statusCode = res.message.statusCode || 0;
+                const response = {
+                    statusCode,
+                    result: null,
+                    headers: {}
+                };
+                // not found leads to null obj returned
+                if (statusCode === HttpCodes.NotFound) {
+                    resolve(response);
+                }
+                // get the result from the body
+                function dateTimeDeserializer(key, value) {
+                    if (typeof value === 'string') {
+                        const a = new Date(value);
+                        if (!isNaN(a.valueOf())) {
+                            return a;
+                        }
+                    }
+                    return value;
+                }
+                let obj;
+                let contents;
+                try {
+                    contents = yield res.readBody();
+                    if (contents && contents.length > 0) {
+                        if (options && options.deserializeDates) {
+                            obj = JSON.parse(contents, dateTimeDeserializer);
+                        }
+                        else {
+                            obj = JSON.parse(contents);
+                        }
+                        response.result = obj;
+                    }
+                    response.headers = res.message.headers;
+                }
+                catch (err) {
+                    // Invalid resource (contents not json);  leaving result obj null
+                }
+                // note that 3xx redirects are handled by the http layer.
+                if (statusCode > 299) {
+                    let msg;
+                    // if exception/error in body, attempt to get better error
+                    if (obj && obj.message) {
+                        msg = obj.message;
+                    }
+                    else if (contents && contents.length > 0) {
+                        // it may be the case that the exception is in the body message as string
+                        msg = contents;
                     }
                     else {
-                        obj = JSON.parse(contents);
+                        msg = `Failed request: (${statusCode})`;
                     }
-                    response.result = obj;
-                }
-                response.headers = res.message.headers;
-            }
-            catch (err) {
-                // Invalid resource (contents not json);  leaving result obj null
-            }
-            // note that 3xx redirects are handled by the http layer.
-            if (statusCode > 299) {
-                let msg;
-                // if exception/error in body, attempt to get better error
-                if (obj && obj.message) {
-                    msg = obj.message;
-                }
-                else if (contents && contents.length > 0) {
-                    // it may be the case that the exception is in the body message as string
-                    msg = contents;
+                    const err = new HttpClientError(msg, statusCode);
+                    err.result = response.result;
+                    reject(err);
                 }
                 else {
-                    msg = 'Failed request: (' + statusCode + ')';
+                    resolve(response);
                 }
-                let err = new HttpClientError(msg, statusCode);
-                err.result = response.result;
-                reject(err);
-            }
-            else {
-                resolve(response);
-            }
+            }));
         });
     }
 }
 exports.HttpClient = HttpClient;
-
+const lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
+//# sourceMappingURL=index.js.map
 
 /***/ }),
 
-/***/ 6443:
+/***/ 9835:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkBypass = exports.getProxyUrl = void 0;
 function getProxyUrl(reqUrl) {
-    let usingSsl = reqUrl.protocol === 'https:';
-    let proxyUrl;
+    const usingSsl = reqUrl.protocol === 'https:';
     if (checkBypass(reqUrl)) {
-        return proxyUrl;
+        return undefined;
     }
-    let proxyVar;
-    if (usingSsl) {
-        proxyVar = process.env['https_proxy'] || process.env['HTTPS_PROXY'];
+    const proxyVar = (() => {
+        if (usingSsl) {
+            return process.env['https_proxy'] || process.env['HTTPS_PROXY'];
+        }
+        else {
+            return process.env['http_proxy'] || process.env['HTTP_PROXY'];
+        }
+    })();
+    if (proxyVar) {
+        return new URL(proxyVar);
     }
     else {
-        proxyVar = process.env['http_proxy'] || process.env['HTTP_PROXY'];
+        return undefined;
     }
-    if (proxyVar) {
-        proxyUrl = new URL(proxyVar);
-    }
-    return proxyUrl;
 }
 exports.getProxyUrl = getProxyUrl;
 function checkBypass(reqUrl) {
     if (!reqUrl.hostname) {
         return false;
     }
-    let noProxy = process.env['no_proxy'] || process.env['NO_PROXY'] || '';
+    const noProxy = process.env['no_proxy'] || process.env['NO_PROXY'] || '';
     if (!noProxy) {
         return false;
     }
@@ -1255,12 +1647,12 @@ function checkBypass(reqUrl) {
         reqPort = 443;
     }
     // Format the request hostname and hostname with port
-    let upperReqHosts = [reqUrl.hostname.toUpperCase()];
+    const upperReqHosts = [reqUrl.hostname.toUpperCase()];
     if (typeof reqPort === 'number') {
         upperReqHosts.push(`${upperReqHosts[0]}:${reqPort}`);
     }
     // Compare request host against noproxy
-    for (let upperNoProxyItem of noProxy
+    for (const upperNoProxyItem of noProxy
         .split(',')
         .map(x => x.trim().toUpperCase())
         .filter(x => x)) {
@@ -1271,7 +1663,7 @@ function checkBypass(reqUrl) {
     return false;
 }
 exports.checkBypass = checkBypass;
-
+//# sourceMappingURL=proxy.js.map
 
 /***/ }),
 
@@ -1344,7 +1736,7 @@ function _defineProperty(obj, key, value) {
   return obj;
 }
 
-const VERSION = "3.18.0";
+const VERSION = "3.18.1";
 
 const DEFAULTS = {
   authStrategy: authAction.createActionAuth,
@@ -1518,7 +1910,7 @@ function _objectWithoutProperties(source, excluded) {
   return target;
 }
 
-const VERSION = "3.5.1";
+const VERSION = "3.6.0";
 
 const _excluded = ["authStrategy"];
 class Octokit {
@@ -3755,6 +4147,20 @@ module.exports = once;
   0;
 })(this, (function (exports) { 'use strict';
 
+  // This file was generated. Do not modify manually!
+  var astralIdentifierCodes = [509, 0, 227, 0, 150, 4, 294, 9, 1368, 2, 2, 1, 6, 3, 41, 2, 5, 0, 166, 1, 574, 3, 9, 9, 370, 1, 154, 10, 50, 3, 123, 2, 54, 14, 32, 10, 3, 1, 11, 3, 46, 10, 8, 0, 46, 9, 7, 2, 37, 13, 2, 9, 6, 1, 45, 0, 13, 2, 49, 13, 9, 3, 2, 11, 83, 11, 7, 0, 161, 11, 6, 9, 7, 3, 56, 1, 2, 6, 3, 1, 3, 2, 10, 0, 11, 1, 3, 6, 4, 4, 193, 17, 10, 9, 5, 0, 82, 19, 13, 9, 214, 6, 3, 8, 28, 1, 83, 16, 16, 9, 82, 12, 9, 9, 84, 14, 5, 9, 243, 14, 166, 9, 71, 5, 2, 1, 3, 3, 2, 0, 2, 1, 13, 9, 120, 6, 3, 6, 4, 0, 29, 9, 41, 6, 2, 3, 9, 0, 10, 10, 47, 15, 406, 7, 2, 7, 17, 9, 57, 21, 2, 13, 123, 5, 4, 0, 2, 1, 2, 6, 2, 0, 9, 9, 49, 4, 2, 1, 2, 4, 9, 9, 330, 3, 19306, 9, 87, 9, 39, 4, 60, 6, 26, 9, 1014, 0, 2, 54, 8, 3, 82, 0, 12, 1, 19628, 1, 4706, 45, 3, 22, 543, 4, 4, 5, 9, 7, 3, 6, 31, 3, 149, 2, 1418, 49, 513, 54, 5, 49, 9, 0, 15, 0, 23, 4, 2, 14, 1361, 6, 2, 16, 3, 6, 2, 1, 2, 4, 262, 6, 10, 9, 357, 0, 62, 13, 1495, 6, 110, 6, 6, 9, 4759, 9, 787719, 239];
+
+  // This file was generated. Do not modify manually!
+  var astralIdentifierStartCodes = [0, 11, 2, 25, 2, 18, 2, 1, 2, 14, 3, 13, 35, 122, 70, 52, 268, 28, 4, 48, 48, 31, 14, 29, 6, 37, 11, 29, 3, 35, 5, 7, 2, 4, 43, 157, 19, 35, 5, 35, 5, 39, 9, 51, 13, 10, 2, 14, 2, 6, 2, 1, 2, 10, 2, 14, 2, 6, 2, 1, 68, 310, 10, 21, 11, 7, 25, 5, 2, 41, 2, 8, 70, 5, 3, 0, 2, 43, 2, 1, 4, 0, 3, 22, 11, 22, 10, 30, 66, 18, 2, 1, 11, 21, 11, 25, 71, 55, 7, 1, 65, 0, 16, 3, 2, 2, 2, 28, 43, 28, 4, 28, 36, 7, 2, 27, 28, 53, 11, 21, 11, 18, 14, 17, 111, 72, 56, 50, 14, 50, 14, 35, 349, 41, 7, 1, 79, 28, 11, 0, 9, 21, 43, 17, 47, 20, 28, 22, 13, 52, 58, 1, 3, 0, 14, 44, 33, 24, 27, 35, 30, 0, 3, 0, 9, 34, 4, 0, 13, 47, 15, 3, 22, 0, 2, 0, 36, 17, 2, 24, 85, 6, 2, 0, 2, 3, 2, 14, 2, 9, 8, 46, 39, 7, 3, 1, 3, 21, 2, 6, 2, 1, 2, 4, 4, 0, 19, 0, 13, 4, 159, 52, 19, 3, 21, 2, 31, 47, 21, 1, 2, 0, 185, 46, 42, 3, 37, 47, 21, 0, 60, 42, 14, 0, 72, 26, 38, 6, 186, 43, 117, 63, 32, 7, 3, 0, 3, 7, 2, 1, 2, 23, 16, 0, 2, 0, 95, 7, 3, 38, 17, 0, 2, 0, 29, 0, 11, 39, 8, 0, 22, 0, 12, 45, 20, 0, 19, 72, 264, 8, 2, 36, 18, 0, 50, 29, 113, 6, 2, 1, 2, 37, 22, 0, 26, 5, 2, 1, 2, 31, 15, 0, 328, 18, 190, 0, 80, 921, 103, 110, 18, 195, 2637, 96, 16, 1070, 4050, 582, 8634, 568, 8, 30, 18, 78, 18, 29, 19, 47, 17, 3, 32, 20, 6, 18, 689, 63, 129, 74, 6, 0, 67, 12, 65, 1, 2, 0, 29, 6135, 9, 1237, 43, 8, 8936, 3, 2, 6, 2, 1, 2, 290, 46, 2, 18, 3, 9, 395, 2309, 106, 6, 12, 4, 8, 8, 9, 5991, 84, 2, 70, 2, 1, 3, 0, 3, 1, 3, 3, 2, 11, 2, 0, 2, 6, 2, 64, 2, 3, 3, 7, 2, 6, 2, 27, 2, 3, 2, 4, 2, 0, 4, 6, 2, 339, 3, 24, 2, 24, 2, 30, 2, 24, 2, 30, 2, 24, 2, 30, 2, 24, 2, 30, 2, 24, 2, 7, 1845, 30, 482, 44, 11, 6, 17, 0, 322, 29, 19, 43, 1269, 6, 2, 3, 2, 1, 2, 14, 2, 196, 60, 67, 8, 0, 1205, 3, 2, 26, 2, 1, 2, 0, 3, 0, 2, 9, 2, 3, 2, 0, 2, 0, 7, 0, 5, 0, 2, 0, 2, 0, 2, 2, 2, 1, 2, 0, 3, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 1, 2, 0, 3, 3, 2, 6, 2, 3, 2, 3, 2, 0, 2, 9, 2, 16, 6, 2, 2, 4, 2, 16, 4421, 42719, 33, 4152, 8, 221, 3, 5761, 15, 7472, 3104, 541, 1507, 4938];
+
+  // This file was generated. Do not modify manually!
+  var nonASCIIidentifierChars = "\u200c\u200d\xb7\u0300-\u036f\u0387\u0483-\u0487\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7\u0610-\u061a\u064b-\u0669\u0670\u06d6-\u06dc\u06df-\u06e4\u06e7\u06e8\u06ea-\u06ed\u06f0-\u06f9\u0711\u0730-\u074a\u07a6-\u07b0\u07c0-\u07c9\u07eb-\u07f3\u07fd\u0816-\u0819\u081b-\u0823\u0825-\u0827\u0829-\u082d\u0859-\u085b\u0898-\u089f\u08ca-\u08e1\u08e3-\u0903\u093a-\u093c\u093e-\u094f\u0951-\u0957\u0962\u0963\u0966-\u096f\u0981-\u0983\u09bc\u09be-\u09c4\u09c7\u09c8\u09cb-\u09cd\u09d7\u09e2\u09e3\u09e6-\u09ef\u09fe\u0a01-\u0a03\u0a3c\u0a3e-\u0a42\u0a47\u0a48\u0a4b-\u0a4d\u0a51\u0a66-\u0a71\u0a75\u0a81-\u0a83\u0abc\u0abe-\u0ac5\u0ac7-\u0ac9\u0acb-\u0acd\u0ae2\u0ae3\u0ae6-\u0aef\u0afa-\u0aff\u0b01-\u0b03\u0b3c\u0b3e-\u0b44\u0b47\u0b48\u0b4b-\u0b4d\u0b55-\u0b57\u0b62\u0b63\u0b66-\u0b6f\u0b82\u0bbe-\u0bc2\u0bc6-\u0bc8\u0bca-\u0bcd\u0bd7\u0be6-\u0bef\u0c00-\u0c04\u0c3c\u0c3e-\u0c44\u0c46-\u0c48\u0c4a-\u0c4d\u0c55\u0c56\u0c62\u0c63\u0c66-\u0c6f\u0c81-\u0c83\u0cbc\u0cbe-\u0cc4\u0cc6-\u0cc8\u0cca-\u0ccd\u0cd5\u0cd6\u0ce2\u0ce3\u0ce6-\u0cef\u0d00-\u0d03\u0d3b\u0d3c\u0d3e-\u0d44\u0d46-\u0d48\u0d4a-\u0d4d\u0d57\u0d62\u0d63\u0d66-\u0d6f\u0d81-\u0d83\u0dca\u0dcf-\u0dd4\u0dd6\u0dd8-\u0ddf\u0de6-\u0def\u0df2\u0df3\u0e31\u0e34-\u0e3a\u0e47-\u0e4e\u0e50-\u0e59\u0eb1\u0eb4-\u0ebc\u0ec8-\u0ecd\u0ed0-\u0ed9\u0f18\u0f19\u0f20-\u0f29\u0f35\u0f37\u0f39\u0f3e\u0f3f\u0f71-\u0f84\u0f86\u0f87\u0f8d-\u0f97\u0f99-\u0fbc\u0fc6\u102b-\u103e\u1040-\u1049\u1056-\u1059\u105e-\u1060\u1062-\u1064\u1067-\u106d\u1071-\u1074\u1082-\u108d\u108f-\u109d\u135d-\u135f\u1369-\u1371\u1712-\u1715\u1732-\u1734\u1752\u1753\u1772\u1773\u17b4-\u17d3\u17dd\u17e0-\u17e9\u180b-\u180d\u180f-\u1819\u18a9\u1920-\u192b\u1930-\u193b\u1946-\u194f\u19d0-\u19da\u1a17-\u1a1b\u1a55-\u1a5e\u1a60-\u1a7c\u1a7f-\u1a89\u1a90-\u1a99\u1ab0-\u1abd\u1abf-\u1ace\u1b00-\u1b04\u1b34-\u1b44\u1b50-\u1b59\u1b6b-\u1b73\u1b80-\u1b82\u1ba1-\u1bad\u1bb0-\u1bb9\u1be6-\u1bf3\u1c24-\u1c37\u1c40-\u1c49\u1c50-\u1c59\u1cd0-\u1cd2\u1cd4-\u1ce8\u1ced\u1cf4\u1cf7-\u1cf9\u1dc0-\u1dff\u203f\u2040\u2054\u20d0-\u20dc\u20e1\u20e5-\u20f0\u2cef-\u2cf1\u2d7f\u2de0-\u2dff\u302a-\u302f\u3099\u309a\ua620-\ua629\ua66f\ua674-\ua67d\ua69e\ua69f\ua6f0\ua6f1\ua802\ua806\ua80b\ua823-\ua827\ua82c\ua880\ua881\ua8b4-\ua8c5\ua8d0-\ua8d9\ua8e0-\ua8f1\ua8ff-\ua909\ua926-\ua92d\ua947-\ua953\ua980-\ua983\ua9b3-\ua9c0\ua9d0-\ua9d9\ua9e5\ua9f0-\ua9f9\uaa29-\uaa36\uaa43\uaa4c\uaa4d\uaa50-\uaa59\uaa7b-\uaa7d\uaab0\uaab2-\uaab4\uaab7\uaab8\uaabe\uaabf\uaac1\uaaeb-\uaaef\uaaf5\uaaf6\uabe3-\uabea\uabec\uabed\uabf0-\uabf9\ufb1e\ufe00-\ufe0f\ufe20-\ufe2f\ufe33\ufe34\ufe4d-\ufe4f\uff10-\uff19\uff3f";
+
+  // This file was generated. Do not modify manually!
+  var nonASCIIidentifierStartChars = "\xaa\xb5\xba\xc0-\xd6\xd8-\xf6\xf8-\u02c1\u02c6-\u02d1\u02e0-\u02e4\u02ec\u02ee\u0370-\u0374\u0376\u0377\u037a-\u037d\u037f\u0386\u0388-\u038a\u038c\u038e-\u03a1\u03a3-\u03f5\u03f7-\u0481\u048a-\u052f\u0531-\u0556\u0559\u0560-\u0588\u05d0-\u05ea\u05ef-\u05f2\u0620-\u064a\u066e\u066f\u0671-\u06d3\u06d5\u06e5\u06e6\u06ee\u06ef\u06fa-\u06fc\u06ff\u0710\u0712-\u072f\u074d-\u07a5\u07b1\u07ca-\u07ea\u07f4\u07f5\u07fa\u0800-\u0815\u081a\u0824\u0828\u0840-\u0858\u0860-\u086a\u0870-\u0887\u0889-\u088e\u08a0-\u08c9\u0904-\u0939\u093d\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098c\u098f\u0990\u0993-\u09a8\u09aa-\u09b0\u09b2\u09b6-\u09b9\u09bd\u09ce\u09dc\u09dd\u09df-\u09e1\u09f0\u09f1\u09fc\u0a05-\u0a0a\u0a0f\u0a10\u0a13-\u0a28\u0a2a-\u0a30\u0a32\u0a33\u0a35\u0a36\u0a38\u0a39\u0a59-\u0a5c\u0a5e\u0a72-\u0a74\u0a85-\u0a8d\u0a8f-\u0a91\u0a93-\u0aa8\u0aaa-\u0ab0\u0ab2\u0ab3\u0ab5-\u0ab9\u0abd\u0ad0\u0ae0\u0ae1\u0af9\u0b05-\u0b0c\u0b0f\u0b10\u0b13-\u0b28\u0b2a-\u0b30\u0b32\u0b33\u0b35-\u0b39\u0b3d\u0b5c\u0b5d\u0b5f-\u0b61\u0b71\u0b83\u0b85-\u0b8a\u0b8e-\u0b90\u0b92-\u0b95\u0b99\u0b9a\u0b9c\u0b9e\u0b9f\u0ba3\u0ba4\u0ba8-\u0baa\u0bae-\u0bb9\u0bd0\u0c05-\u0c0c\u0c0e-\u0c10\u0c12-\u0c28\u0c2a-\u0c39\u0c3d\u0c58-\u0c5a\u0c5d\u0c60\u0c61\u0c80\u0c85-\u0c8c\u0c8e-\u0c90\u0c92-\u0ca8\u0caa-\u0cb3\u0cb5-\u0cb9\u0cbd\u0cdd\u0cde\u0ce0\u0ce1\u0cf1\u0cf2\u0d04-\u0d0c\u0d0e-\u0d10\u0d12-\u0d3a\u0d3d\u0d4e\u0d54-\u0d56\u0d5f-\u0d61\u0d7a-\u0d7f\u0d85-\u0d96\u0d9a-\u0db1\u0db3-\u0dbb\u0dbd\u0dc0-\u0dc6\u0e01-\u0e30\u0e32\u0e33\u0e40-\u0e46\u0e81\u0e82\u0e84\u0e86-\u0e8a\u0e8c-\u0ea3\u0ea5\u0ea7-\u0eb0\u0eb2\u0eb3\u0ebd\u0ec0-\u0ec4\u0ec6\u0edc-\u0edf\u0f00\u0f40-\u0f47\u0f49-\u0f6c\u0f88-\u0f8c\u1000-\u102a\u103f\u1050-\u1055\u105a-\u105d\u1061\u1065\u1066\u106e-\u1070\u1075-\u1081\u108e\u10a0-\u10c5\u10c7\u10cd\u10d0-\u10fa\u10fc-\u1248\u124a-\u124d\u1250-\u1256\u1258\u125a-\u125d\u1260-\u1288\u128a-\u128d\u1290-\u12b0\u12b2-\u12b5\u12b8-\u12be\u12c0\u12c2-\u12c5\u12c8-\u12d6\u12d8-\u1310\u1312-\u1315\u1318-\u135a\u1380-\u138f\u13a0-\u13f5\u13f8-\u13fd\u1401-\u166c\u166f-\u167f\u1681-\u169a\u16a0-\u16ea\u16ee-\u16f8\u1700-\u1711\u171f-\u1731\u1740-\u1751\u1760-\u176c\u176e-\u1770\u1780-\u17b3\u17d7\u17dc\u1820-\u1878\u1880-\u18a8\u18aa\u18b0-\u18f5\u1900-\u191e\u1950-\u196d\u1970-\u1974\u1980-\u19ab\u19b0-\u19c9\u1a00-\u1a16\u1a20-\u1a54\u1aa7\u1b05-\u1b33\u1b45-\u1b4c\u1b83-\u1ba0\u1bae\u1baf\u1bba-\u1be5\u1c00-\u1c23\u1c4d-\u1c4f\u1c5a-\u1c7d\u1c80-\u1c88\u1c90-\u1cba\u1cbd-\u1cbf\u1ce9-\u1cec\u1cee-\u1cf3\u1cf5\u1cf6\u1cfa\u1d00-\u1dbf\u1e00-\u1f15\u1f18-\u1f1d\u1f20-\u1f45\u1f48-\u1f4d\u1f50-\u1f57\u1f59\u1f5b\u1f5d\u1f5f-\u1f7d\u1f80-\u1fb4\u1fb6-\u1fbc\u1fbe\u1fc2-\u1fc4\u1fc6-\u1fcc\u1fd0-\u1fd3\u1fd6-\u1fdb\u1fe0-\u1fec\u1ff2-\u1ff4\u1ff6-\u1ffc\u2071\u207f\u2090-\u209c\u2102\u2107\u210a-\u2113\u2115\u2118-\u211d\u2124\u2126\u2128\u212a-\u2139\u213c-\u213f\u2145-\u2149\u214e\u2160-\u2188\u2c00-\u2ce4\u2ceb-\u2cee\u2cf2\u2cf3\u2d00-\u2d25\u2d27\u2d2d\u2d30-\u2d67\u2d6f\u2d80-\u2d96\u2da0-\u2da6\u2da8-\u2dae\u2db0-\u2db6\u2db8-\u2dbe\u2dc0-\u2dc6\u2dc8-\u2dce\u2dd0-\u2dd6\u2dd8-\u2dde\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303c\u3041-\u3096\u309b-\u309f\u30a1-\u30fa\u30fc-\u30ff\u3105-\u312f\u3131-\u318e\u31a0-\u31bf\u31f0-\u31ff\u3400-\u4dbf\u4e00-\ua48c\ua4d0-\ua4fd\ua500-\ua60c\ua610-\ua61f\ua62a\ua62b\ua640-\ua66e\ua67f-\ua69d\ua6a0-\ua6ef\ua717-\ua71f\ua722-\ua788\ua78b-\ua7ca\ua7d0\ua7d1\ua7d3\ua7d5-\ua7d9\ua7f2-\ua801\ua803-\ua805\ua807-\ua80a\ua80c-\ua822\ua840-\ua873\ua882-\ua8b3\ua8f2-\ua8f7\ua8fb\ua8fd\ua8fe\ua90a-\ua925\ua930-\ua946\ua960-\ua97c\ua984-\ua9b2\ua9cf\ua9e0-\ua9e4\ua9e6-\ua9ef\ua9fa-\ua9fe\uaa00-\uaa28\uaa40-\uaa42\uaa44-\uaa4b\uaa60-\uaa76\uaa7a\uaa7e-\uaaaf\uaab1\uaab5\uaab6\uaab9-\uaabd\uaac0\uaac2\uaadb-\uaadd\uaae0-\uaaea\uaaf2-\uaaf4\uab01-\uab06\uab09-\uab0e\uab11-\uab16\uab20-\uab26\uab28-\uab2e\uab30-\uab5a\uab5c-\uab69\uab70-\uabe2\uac00-\ud7a3\ud7b0-\ud7c6\ud7cb-\ud7fb\uf900-\ufa6d\ufa70-\ufad9\ufb00-\ufb06\ufb13-\ufb17\ufb1d\ufb1f-\ufb28\ufb2a-\ufb36\ufb38-\ufb3c\ufb3e\ufb40\ufb41\ufb43\ufb44\ufb46-\ufbb1\ufbd3-\ufd3d\ufd50-\ufd8f\ufd92-\ufdc7\ufdf0-\ufdfb\ufe70-\ufe74\ufe76-\ufefc\uff21-\uff3a\uff41-\uff5a\uff66-\uffbe\uffc2-\uffc7\uffca-\uffcf\uffd2-\uffd7\uffda-\uffdc";
+
+  // These are a run-length and offset encoded representation of the
+
   // Reserved word lists for various dialects of the language
 
   var reservedWords = {
@@ -3779,30 +4185,8 @@ module.exports = once;
 
   // ## Character categories
 
-  // Big ugly regular expressions that match characters in the
-  // whitespace, identifier, and identifier-start categories. These
-  // are only applied when a character is found to actually have a
-  // code point above 128.
-  // Generated by `bin/generate-identifier-regex.js`.
-  var nonASCIIidentifierStartChars = "\xaa\xb5\xba\xc0-\xd6\xd8-\xf6\xf8-\u02c1\u02c6-\u02d1\u02e0-\u02e4\u02ec\u02ee\u0370-\u0374\u0376\u0377\u037a-\u037d\u037f\u0386\u0388-\u038a\u038c\u038e-\u03a1\u03a3-\u03f5\u03f7-\u0481\u048a-\u052f\u0531-\u0556\u0559\u0560-\u0588\u05d0-\u05ea\u05ef-\u05f2\u0620-\u064a\u066e\u066f\u0671-\u06d3\u06d5\u06e5\u06e6\u06ee\u06ef\u06fa-\u06fc\u06ff\u0710\u0712-\u072f\u074d-\u07a5\u07b1\u07ca-\u07ea\u07f4\u07f5\u07fa\u0800-\u0815\u081a\u0824\u0828\u0840-\u0858\u0860-\u086a\u0870-\u0887\u0889-\u088e\u08a0-\u08c9\u0904-\u0939\u093d\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098c\u098f\u0990\u0993-\u09a8\u09aa-\u09b0\u09b2\u09b6-\u09b9\u09bd\u09ce\u09dc\u09dd\u09df-\u09e1\u09f0\u09f1\u09fc\u0a05-\u0a0a\u0a0f\u0a10\u0a13-\u0a28\u0a2a-\u0a30\u0a32\u0a33\u0a35\u0a36\u0a38\u0a39\u0a59-\u0a5c\u0a5e\u0a72-\u0a74\u0a85-\u0a8d\u0a8f-\u0a91\u0a93-\u0aa8\u0aaa-\u0ab0\u0ab2\u0ab3\u0ab5-\u0ab9\u0abd\u0ad0\u0ae0\u0ae1\u0af9\u0b05-\u0b0c\u0b0f\u0b10\u0b13-\u0b28\u0b2a-\u0b30\u0b32\u0b33\u0b35-\u0b39\u0b3d\u0b5c\u0b5d\u0b5f-\u0b61\u0b71\u0b83\u0b85-\u0b8a\u0b8e-\u0b90\u0b92-\u0b95\u0b99\u0b9a\u0b9c\u0b9e\u0b9f\u0ba3\u0ba4\u0ba8-\u0baa\u0bae-\u0bb9\u0bd0\u0c05-\u0c0c\u0c0e-\u0c10\u0c12-\u0c28\u0c2a-\u0c39\u0c3d\u0c58-\u0c5a\u0c5d\u0c60\u0c61\u0c80\u0c85-\u0c8c\u0c8e-\u0c90\u0c92-\u0ca8\u0caa-\u0cb3\u0cb5-\u0cb9\u0cbd\u0cdd\u0cde\u0ce0\u0ce1\u0cf1\u0cf2\u0d04-\u0d0c\u0d0e-\u0d10\u0d12-\u0d3a\u0d3d\u0d4e\u0d54-\u0d56\u0d5f-\u0d61\u0d7a-\u0d7f\u0d85-\u0d96\u0d9a-\u0db1\u0db3-\u0dbb\u0dbd\u0dc0-\u0dc6\u0e01-\u0e30\u0e32\u0e33\u0e40-\u0e46\u0e81\u0e82\u0e84\u0e86-\u0e8a\u0e8c-\u0ea3\u0ea5\u0ea7-\u0eb0\u0eb2\u0eb3\u0ebd\u0ec0-\u0ec4\u0ec6\u0edc-\u0edf\u0f00\u0f40-\u0f47\u0f49-\u0f6c\u0f88-\u0f8c\u1000-\u102a\u103f\u1050-\u1055\u105a-\u105d\u1061\u1065\u1066\u106e-\u1070\u1075-\u1081\u108e\u10a0-\u10c5\u10c7\u10cd\u10d0-\u10fa\u10fc-\u1248\u124a-\u124d\u1250-\u1256\u1258\u125a-\u125d\u1260-\u1288\u128a-\u128d\u1290-\u12b0\u12b2-\u12b5\u12b8-\u12be\u12c0\u12c2-\u12c5\u12c8-\u12d6\u12d8-\u1310\u1312-\u1315\u1318-\u135a\u1380-\u138f\u13a0-\u13f5\u13f8-\u13fd\u1401-\u166c\u166f-\u167f\u1681-\u169a\u16a0-\u16ea\u16ee-\u16f8\u1700-\u1711\u171f-\u1731\u1740-\u1751\u1760-\u176c\u176e-\u1770\u1780-\u17b3\u17d7\u17dc\u1820-\u1878\u1880-\u18a8\u18aa\u18b0-\u18f5\u1900-\u191e\u1950-\u196d\u1970-\u1974\u1980-\u19ab\u19b0-\u19c9\u1a00-\u1a16\u1a20-\u1a54\u1aa7\u1b05-\u1b33\u1b45-\u1b4c\u1b83-\u1ba0\u1bae\u1baf\u1bba-\u1be5\u1c00-\u1c23\u1c4d-\u1c4f\u1c5a-\u1c7d\u1c80-\u1c88\u1c90-\u1cba\u1cbd-\u1cbf\u1ce9-\u1cec\u1cee-\u1cf3\u1cf5\u1cf6\u1cfa\u1d00-\u1dbf\u1e00-\u1f15\u1f18-\u1f1d\u1f20-\u1f45\u1f48-\u1f4d\u1f50-\u1f57\u1f59\u1f5b\u1f5d\u1f5f-\u1f7d\u1f80-\u1fb4\u1fb6-\u1fbc\u1fbe\u1fc2-\u1fc4\u1fc6-\u1fcc\u1fd0-\u1fd3\u1fd6-\u1fdb\u1fe0-\u1fec\u1ff2-\u1ff4\u1ff6-\u1ffc\u2071\u207f\u2090-\u209c\u2102\u2107\u210a-\u2113\u2115\u2118-\u211d\u2124\u2126\u2128\u212a-\u2139\u213c-\u213f\u2145-\u2149\u214e\u2160-\u2188\u2c00-\u2ce4\u2ceb-\u2cee\u2cf2\u2cf3\u2d00-\u2d25\u2d27\u2d2d\u2d30-\u2d67\u2d6f\u2d80-\u2d96\u2da0-\u2da6\u2da8-\u2dae\u2db0-\u2db6\u2db8-\u2dbe\u2dc0-\u2dc6\u2dc8-\u2dce\u2dd0-\u2dd6\u2dd8-\u2dde\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303c\u3041-\u3096\u309b-\u309f\u30a1-\u30fa\u30fc-\u30ff\u3105-\u312f\u3131-\u318e\u31a0-\u31bf\u31f0-\u31ff\u3400-\u4dbf\u4e00-\ua48c\ua4d0-\ua4fd\ua500-\ua60c\ua610-\ua61f\ua62a\ua62b\ua640-\ua66e\ua67f-\ua69d\ua6a0-\ua6ef\ua717-\ua71f\ua722-\ua788\ua78b-\ua7ca\ua7d0\ua7d1\ua7d3\ua7d5-\ua7d9\ua7f2-\ua801\ua803-\ua805\ua807-\ua80a\ua80c-\ua822\ua840-\ua873\ua882-\ua8b3\ua8f2-\ua8f7\ua8fb\ua8fd\ua8fe\ua90a-\ua925\ua930-\ua946\ua960-\ua97c\ua984-\ua9b2\ua9cf\ua9e0-\ua9e4\ua9e6-\ua9ef\ua9fa-\ua9fe\uaa00-\uaa28\uaa40-\uaa42\uaa44-\uaa4b\uaa60-\uaa76\uaa7a\uaa7e-\uaaaf\uaab1\uaab5\uaab6\uaab9-\uaabd\uaac0\uaac2\uaadb-\uaadd\uaae0-\uaaea\uaaf2-\uaaf4\uab01-\uab06\uab09-\uab0e\uab11-\uab16\uab20-\uab26\uab28-\uab2e\uab30-\uab5a\uab5c-\uab69\uab70-\uabe2\uac00-\ud7a3\ud7b0-\ud7c6\ud7cb-\ud7fb\uf900-\ufa6d\ufa70-\ufad9\ufb00-\ufb06\ufb13-\ufb17\ufb1d\ufb1f-\ufb28\ufb2a-\ufb36\ufb38-\ufb3c\ufb3e\ufb40\ufb41\ufb43\ufb44\ufb46-\ufbb1\ufbd3-\ufd3d\ufd50-\ufd8f\ufd92-\ufdc7\ufdf0-\ufdfb\ufe70-\ufe74\ufe76-\ufefc\uff21-\uff3a\uff41-\uff5a\uff66-\uffbe\uffc2-\uffc7\uffca-\uffcf\uffd2-\uffd7\uffda-\uffdc";
-  var nonASCIIidentifierChars = "\u200c\u200d\xb7\u0300-\u036f\u0387\u0483-\u0487\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7\u0610-\u061a\u064b-\u0669\u0670\u06d6-\u06dc\u06df-\u06e4\u06e7\u06e8\u06ea-\u06ed\u06f0-\u06f9\u0711\u0730-\u074a\u07a6-\u07b0\u07c0-\u07c9\u07eb-\u07f3\u07fd\u0816-\u0819\u081b-\u0823\u0825-\u0827\u0829-\u082d\u0859-\u085b\u0898-\u089f\u08ca-\u08e1\u08e3-\u0903\u093a-\u093c\u093e-\u094f\u0951-\u0957\u0962\u0963\u0966-\u096f\u0981-\u0983\u09bc\u09be-\u09c4\u09c7\u09c8\u09cb-\u09cd\u09d7\u09e2\u09e3\u09e6-\u09ef\u09fe\u0a01-\u0a03\u0a3c\u0a3e-\u0a42\u0a47\u0a48\u0a4b-\u0a4d\u0a51\u0a66-\u0a71\u0a75\u0a81-\u0a83\u0abc\u0abe-\u0ac5\u0ac7-\u0ac9\u0acb-\u0acd\u0ae2\u0ae3\u0ae6-\u0aef\u0afa-\u0aff\u0b01-\u0b03\u0b3c\u0b3e-\u0b44\u0b47\u0b48\u0b4b-\u0b4d\u0b55-\u0b57\u0b62\u0b63\u0b66-\u0b6f\u0b82\u0bbe-\u0bc2\u0bc6-\u0bc8\u0bca-\u0bcd\u0bd7\u0be6-\u0bef\u0c00-\u0c04\u0c3c\u0c3e-\u0c44\u0c46-\u0c48\u0c4a-\u0c4d\u0c55\u0c56\u0c62\u0c63\u0c66-\u0c6f\u0c81-\u0c83\u0cbc\u0cbe-\u0cc4\u0cc6-\u0cc8\u0cca-\u0ccd\u0cd5\u0cd6\u0ce2\u0ce3\u0ce6-\u0cef\u0d00-\u0d03\u0d3b\u0d3c\u0d3e-\u0d44\u0d46-\u0d48\u0d4a-\u0d4d\u0d57\u0d62\u0d63\u0d66-\u0d6f\u0d81-\u0d83\u0dca\u0dcf-\u0dd4\u0dd6\u0dd8-\u0ddf\u0de6-\u0def\u0df2\u0df3\u0e31\u0e34-\u0e3a\u0e47-\u0e4e\u0e50-\u0e59\u0eb1\u0eb4-\u0ebc\u0ec8-\u0ecd\u0ed0-\u0ed9\u0f18\u0f19\u0f20-\u0f29\u0f35\u0f37\u0f39\u0f3e\u0f3f\u0f71-\u0f84\u0f86\u0f87\u0f8d-\u0f97\u0f99-\u0fbc\u0fc6\u102b-\u103e\u1040-\u1049\u1056-\u1059\u105e-\u1060\u1062-\u1064\u1067-\u106d\u1071-\u1074\u1082-\u108d\u108f-\u109d\u135d-\u135f\u1369-\u1371\u1712-\u1715\u1732-\u1734\u1752\u1753\u1772\u1773\u17b4-\u17d3\u17dd\u17e0-\u17e9\u180b-\u180d\u180f-\u1819\u18a9\u1920-\u192b\u1930-\u193b\u1946-\u194f\u19d0-\u19da\u1a17-\u1a1b\u1a55-\u1a5e\u1a60-\u1a7c\u1a7f-\u1a89\u1a90-\u1a99\u1ab0-\u1abd\u1abf-\u1ace\u1b00-\u1b04\u1b34-\u1b44\u1b50-\u1b59\u1b6b-\u1b73\u1b80-\u1b82\u1ba1-\u1bad\u1bb0-\u1bb9\u1be6-\u1bf3\u1c24-\u1c37\u1c40-\u1c49\u1c50-\u1c59\u1cd0-\u1cd2\u1cd4-\u1ce8\u1ced\u1cf4\u1cf7-\u1cf9\u1dc0-\u1dff\u203f\u2040\u2054\u20d0-\u20dc\u20e1\u20e5-\u20f0\u2cef-\u2cf1\u2d7f\u2de0-\u2dff\u302a-\u302f\u3099\u309a\ua620-\ua629\ua66f\ua674-\ua67d\ua69e\ua69f\ua6f0\ua6f1\ua802\ua806\ua80b\ua823-\ua827\ua82c\ua880\ua881\ua8b4-\ua8c5\ua8d0-\ua8d9\ua8e0-\ua8f1\ua8ff-\ua909\ua926-\ua92d\ua947-\ua953\ua980-\ua983\ua9b3-\ua9c0\ua9d0-\ua9d9\ua9e5\ua9f0-\ua9f9\uaa29-\uaa36\uaa43\uaa4c\uaa4d\uaa50-\uaa59\uaa7b-\uaa7d\uaab0\uaab2-\uaab4\uaab7\uaab8\uaabe\uaabf\uaac1\uaaeb-\uaaef\uaaf5\uaaf6\uabe3-\uabea\uabec\uabed\uabf0-\uabf9\ufb1e\ufe00-\ufe0f\ufe20-\ufe2f\ufe33\ufe34\ufe4d-\ufe4f\uff10-\uff19\uff3f";
-
   var nonASCIIidentifierStart = new RegExp("[" + nonASCIIidentifierStartChars + "]");
   var nonASCIIidentifier = new RegExp("[" + nonASCIIidentifierStartChars + nonASCIIidentifierChars + "]");
-
-  nonASCIIidentifierStartChars = nonASCIIidentifierChars = null;
-
-  // These are a run-length and offset encoded representation of the
-  // >0xffff code points that are a valid part of identifiers. The
-  // offset starts at 0x10000, and each pair of numbers represents an
-  // offset to the next range, and then a size of the range. They were
-  // generated by bin/generate-identifier-regex.js
-
-  // eslint-disable-next-line comma-spacing
-  var astralIdentifierStartCodes = [0,11,2,25,2,18,2,1,2,14,3,13,35,122,70,52,268,28,4,48,48,31,14,29,6,37,11,29,3,35,5,7,2,4,43,157,19,35,5,35,5,39,9,51,13,10,2,14,2,6,2,1,2,10,2,14,2,6,2,1,68,310,10,21,11,7,25,5,2,41,2,8,70,5,3,0,2,43,2,1,4,0,3,22,11,22,10,30,66,18,2,1,11,21,11,25,71,55,7,1,65,0,16,3,2,2,2,28,43,28,4,28,36,7,2,27,28,53,11,21,11,18,14,17,111,72,56,50,14,50,14,35,349,41,7,1,79,28,11,0,9,21,43,17,47,20,28,22,13,52,58,1,3,0,14,44,33,24,27,35,30,0,3,0,9,34,4,0,13,47,15,3,22,0,2,0,36,17,2,24,85,6,2,0,2,3,2,14,2,9,8,46,39,7,3,1,3,21,2,6,2,1,2,4,4,0,19,0,13,4,159,52,19,3,21,2,31,47,21,1,2,0,185,46,42,3,37,47,21,0,60,42,14,0,72,26,38,6,186,43,117,63,32,7,3,0,3,7,2,1,2,23,16,0,2,0,95,7,3,38,17,0,2,0,29,0,11,39,8,0,22,0,12,45,20,0,19,72,264,8,2,36,18,0,50,29,113,6,2,1,2,37,22,0,26,5,2,1,2,31,15,0,328,18,190,0,80,921,103,110,18,195,2637,96,16,1070,4050,582,8634,568,8,30,18,78,18,29,19,47,17,3,32,20,6,18,689,63,129,74,6,0,67,12,65,1,2,0,29,6135,9,1237,43,8,8936,3,2,6,2,1,2,290,46,2,18,3,9,395,2309,106,6,12,4,8,8,9,5991,84,2,70,2,1,3,0,3,1,3,3,2,11,2,0,2,6,2,64,2,3,3,7,2,6,2,27,2,3,2,4,2,0,4,6,2,339,3,24,2,24,2,30,2,24,2,30,2,24,2,30,2,24,2,30,2,24,2,7,1845,30,482,44,11,6,17,0,322,29,19,43,1269,6,2,3,2,1,2,14,2,196,60,67,8,0,1205,3,2,26,2,1,2,0,3,0,2,9,2,3,2,0,2,0,7,0,5,0,2,0,2,0,2,2,2,1,2,0,3,0,2,0,2,0,2,0,2,0,2,1,2,0,3,3,2,6,2,3,2,3,2,0,2,9,2,16,6,2,2,4,2,16,4421,42719,33,4152,8,221,3,5761,15,7472,3104,541,1507,4938];
-
-  // eslint-disable-next-line comma-spacing
-  var astralIdentifierCodes = [509,0,227,0,150,4,294,9,1368,2,2,1,6,3,41,2,5,0,166,1,574,3,9,9,370,1,154,10,50,3,123,2,54,14,32,10,3,1,11,3,46,10,8,0,46,9,7,2,37,13,2,9,6,1,45,0,13,2,49,13,9,3,2,11,83,11,7,0,161,11,6,9,7,3,56,1,2,6,3,1,3,2,10,0,11,1,3,6,4,4,193,17,10,9,5,0,82,19,13,9,214,6,3,8,28,1,83,16,16,9,82,12,9,9,84,14,5,9,243,14,166,9,71,5,2,1,3,3,2,0,2,1,13,9,120,6,3,6,4,0,29,9,41,6,2,3,9,0,10,10,47,15,406,7,2,7,17,9,57,21,2,13,123,5,4,0,2,1,2,6,2,0,9,9,49,4,2,1,2,4,9,9,330,3,19306,9,87,9,39,4,60,6,26,9,1014,0,2,54,8,3,82,0,12,1,19628,1,4706,45,3,22,543,4,4,5,9,7,3,6,31,3,149,2,1418,49,513,54,5,49,9,0,15,0,23,4,2,14,1361,6,2,16,3,6,2,1,2,4,262,6,10,9,357,0,62,13,1495,6,110,6,6,9,4759,9,787719,239];
 
   // This has a complexity linear to the value of the code. The
   // assumption is that looking up astral identifier characters is
@@ -4036,6 +4420,13 @@ module.exports = once;
 
   function wordsRegexp(words) {
     return new RegExp("^(?:" + words.replace(/ /g, "|") + ")$")
+  }
+
+  function codePointToString(code) {
+    // UTF-16 Decoding
+    if (code <= 0xFFFF) { return String.fromCharCode(code) }
+    code -= 0x10000;
+    return String.fromCharCode((code >> 10) + 0xD800, (code & 1023) + 0xDC00)
   }
 
   var loneSurrogate = /(?:[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF])/;
@@ -4405,6 +4796,7 @@ module.exports = once;
 
   var literal = /^(?:'((?:\\.|[^'\\])*?)'|"((?:\\.|[^"\\])*?)")/;
   pp$9.strictDirective = function(start) {
+    if (this.options.ecmaVersion < 5) { return false }
     for (;;) {
       // Try to find string literal.
       skipWhiteSpace.lastIndex = start;
@@ -4507,14 +4899,14 @@ module.exports = once;
     this.raise(pos != null ? pos : this.start, "Unexpected token");
   };
 
-  function DestructuringErrors() {
+  var DestructuringErrors = function DestructuringErrors() {
     this.shorthandAssign =
     this.trailingComma =
     this.parenthesizedAssign =
     this.parenthesizedBind =
     this.doubleProto =
       -1;
-  }
+  };
 
   pp$9.checkPatternErrors = function(refDestructuringErrors, isAssign) {
     if (!refDestructuringErrors) { return }
@@ -5395,7 +5787,7 @@ module.exports = once;
       if (this.options.ecmaVersion >= 11) {
         if (this.eatContextual("as")) {
           node.exported = this.parseModuleExportName();
-          this.checkExport(exports, node.exported.name, this.lastTokStart);
+          this.checkExport(exports, node.exported, this.lastTokStart);
         } else {
           node.exported = null;
         }
@@ -5429,7 +5821,7 @@ module.exports = once;
       if (node.declaration.type === "VariableDeclaration")
         { this.checkVariableExport(exports, node.declaration.declarations); }
       else
-        { this.checkExport(exports, node.declaration.id.name, node.declaration.id.start); }
+        { this.checkExport(exports, node.declaration.id, node.declaration.id.start); }
       node.specifiers = [];
       node.source = null;
     } else { // export { x, y as z } [from '...']
@@ -5461,6 +5853,8 @@ module.exports = once;
 
   pp$8.checkExport = function(exports, name, pos) {
     if (!exports) { return }
+    if (typeof name !== "string")
+      { name = name.type === "Identifier" ? name.name : name.value; }
     if (hasOwn(exports, name))
       { this.raiseRecoverable(pos, "Duplicate export '" + name + "'"); }
     exports[name] = true;
@@ -5469,7 +5863,7 @@ module.exports = once;
   pp$8.checkPatternExport = function(exports, pat) {
     var type = pat.type;
     if (type === "Identifier")
-      { this.checkExport(exports, pat.name, pat.start); }
+      { this.checkExport(exports, pat, pat.start); }
     else if (type === "ObjectPattern")
       { for (var i = 0, list = pat.properties; i < list.length; i += 1)
         {
@@ -5529,7 +5923,7 @@ module.exports = once;
       node.exported = this.eatContextual("as") ? this.parseModuleExportName() : node.local;
       this.checkExport(
         exports,
-        node.exported[node.exported.type === "Identifier" ? "name" : "value"],
+        node.exported,
         node.exported.start
       );
       nodes.push(this.finishNode(node, "ExportSpecifier"));
@@ -7519,12 +7913,6 @@ module.exports = once;
     return false
   };
 
-  function codePointToString$1(ch) {
-    if (ch <= 0xFFFF) { return String.fromCharCode(ch) }
-    ch -= 0x10000;
-    return String.fromCharCode((ch >> 10) + 0xD800, (ch & 0x03FF) + 0xDC00)
-  }
-
   /**
    * Validate the flags part of a given RegExpLiteral.
    *
@@ -7889,9 +8277,9 @@ module.exports = once;
   pp$1.regexp_eatRegExpIdentifierName = function(state) {
     state.lastStringValue = "";
     if (this.regexp_eatRegExpIdentifierStart(state)) {
-      state.lastStringValue += codePointToString$1(state.lastIntValue);
+      state.lastStringValue += codePointToString(state.lastIntValue);
       while (this.regexp_eatRegExpIdentifierPart(state)) {
-        state.lastStringValue += codePointToString$1(state.lastIntValue);
+        state.lastStringValue += codePointToString(state.lastIntValue);
       }
       return true
     }
@@ -8243,7 +8631,7 @@ module.exports = once;
     var ch = 0;
     state.lastStringValue = "";
     while (isUnicodePropertyNameCharacter(ch = state.current())) {
-      state.lastStringValue += codePointToString$1(ch);
+      state.lastStringValue += codePointToString(ch);
       state.advance();
     }
     return state.lastStringValue !== ""
@@ -8258,7 +8646,7 @@ module.exports = once;
     var ch = 0;
     state.lastStringValue = "";
     while (isUnicodePropertyValueCharacter(ch = state.current())) {
-      state.lastStringValue += codePointToString$1(ch);
+      state.lastStringValue += codePointToString(ch);
       state.advance();
     }
     return state.lastStringValue !== ""
@@ -9041,13 +9429,6 @@ module.exports = once;
     return code
   };
 
-  function codePointToString(code) {
-    // UTF-16 Decoding
-    if (code <= 0xFFFF) { return String.fromCharCode(code) }
-    code -= 0x10000;
-    return String.fromCharCode((code >> 10) + 0xD800, (code & 1023) + 0xDC00)
-  }
-
   pp.readString = function(quote) {
     var out = "", chunkStart = ++this.pos;
     for (;;) {
@@ -9292,7 +9673,7 @@ module.exports = once;
 
   // Acorn is a tiny, fast JavaScript parser written in JavaScript.
 
-  var version = "8.7.0";
+  var version = "8.7.1";
 
   Parser.acorn = {
     Parser: Parser,
@@ -14523,15 +14904,32 @@ var stringify = function (input, sep) {
     return ret;
 };
 exports.stringify = stringify;
-var parse = function (input, sep, quo) {
-    if (sep === undefined) {
-        // try to detect the separator if not provided
-        sep = detect(input);
+function parse(input, sepOrOpts, quo) {
+    // Create an options hash, using positional parameters or the passed in options hash for values
+    var opts = typeof sepOrOpts === "object" ? sepOrOpts : {};
+    if (typeof sepOrOpts === "string") {
+        opts.comma = sepOrOpts;
     }
-    var csv = new Parser_1.Parser(input, sep, quo);
-    return csv.File();
-};
+    if (quo) {
+        opts.quote = quo;
+    }
+    // try to detect the separator if not provided
+    if (opts.comma === undefined) {
+        opts.comma = detect(input);
+    }
+    // Clean characters, if necessary
+    // TODO: We should probably throw an error here to signal bad input to the user
+    if (opts.comma) {
+        opts.comma = opts.comma[0];
+    }
+    if (opts.quote) {
+        opts.quote = opts.quote[0];
+    }
+    var csv = new Parser_1.Parser(input, opts.comma, opts.quote);
+    return csv.File(opts.output);
+}
 exports.parse = parse;
+;
 function read(input, sep, quo, callback) {
     if (callback === undefined) {
         if (quo === undefined) {
@@ -14695,32 +15093,43 @@ var Parser = /** @class */ (function () {
         this._simpleValueRegExp = new RegExp("[" + this.comma + "\r\n]");
         this._replaceQuoteRegExp = new RegExp(this.quote + this.quote, 'g');
     }
-    Parser.prototype.File = function () {
-        var files = [];
-        var row;
+    Parser.prototype.File = function (output) {
+        var rows = [];
         while (true) {
             var tempointer = this.pointer;
-            row = this.Row();
+            var row = this.Row();
             if (row.length > 0) {
                 this.linePointer = tempointer;
-                files.push(row);
+                rows.push(row);
             }
             else {
                 if (this.linePointer && this.pointer !== this.input.length) {
-                    files.pop();
+                    rows.pop();
                     this.pointer = this.linePointer;
                 }
                 break;
             }
             if (this.EOF()) {
                 if (this.linePointer && this.pointer !== this.input.length) {
-                    files.pop();
+                    rows.pop();
                     this.pointer = this.linePointer;
                 }
                 break;
             }
         }
-        return files;
+        if (output && output === "objects") {
+            if (rows.length === 0) {
+                return [];
+            }
+            var headers_1 = rows.shift();
+            return rows.map(function (row) { return headers_1.reduce(function (data, k, i) {
+                data[k] = row[i];
+                return data;
+            }, {}); });
+        }
+        else {
+            return rows;
+        }
     };
     Parser.prototype.Row = function () {
         var row = [];
@@ -15456,7 +15865,7 @@ function setup(env) {
 			namespaces = split[i].replace(/\*/g, '.*?');
 
 			if (namespaces[0] === '-') {
-				createDebug.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
+				createDebug.skips.push(new RegExp('^' + namespaces.slice(1) + '$'));
 			} else {
 				createDebug.names.push(new RegExp('^' + namespaces + '$'));
 			}
@@ -59571,7 +59980,11 @@ exports.getOutsideCollaborators = getOutsideCollaborators;
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -59802,7 +60215,11 @@ exports.getMarkdownTable = getMarkdownTable;
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -60252,6 +60669,55 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 var stream = __nccwpck_require__(2781);
 
+const is_object = function(obj){
+  return (typeof obj === 'object' && obj !== null && !Array.isArray(obj));
+};
+
+class CsvError extends Error {
+  constructor(code, message, options, ...contexts) {
+    if(Array.isArray(message)) message = message.join(' ');
+    super(message);
+    if(Error.captureStackTrace !== undefined){
+      Error.captureStackTrace(this, CsvError);
+    }
+    this.code = code;
+    for(const context of contexts){
+      for(const key in context){
+        const value = context[key];
+        this[key] = Buffer.isBuffer(value) ? value.toString(options.encoding) : value == null ? value : JSON.parse(JSON.stringify(value));
+      }
+    }
+  }
+}
+
+const normalize_columns_array = function(columns){
+  const normalizedColumns = [];
+  for(let i = 0, l = columns.length; i < l; i++){
+    const column = columns[i];
+    if(column === undefined || column === null || column === false){
+      normalizedColumns[i] = { disabled: true };
+    }else if(typeof column === 'string'){
+      normalizedColumns[i] = { name: column };
+    }else if(is_object(column)){
+      if(typeof column.name !== 'string'){
+        throw new CsvError('CSV_OPTION_COLUMNS_MISSING_NAME', [
+          'Option columns missing name:',
+          `property "name" is required at position ${i}`,
+          'when column is an object literal'
+        ]);
+      }
+      normalizedColumns[i] = column;
+    }else {
+      throw new CsvError('CSV_INVALID_COLUMN_DEFINITION', [
+        'Invalid column definition:',
+        'expect a string or a literal object,',
+        `got ${JSON.stringify(column)} at position ${i}`
+      ]);
+    }
+  }
+  return normalizedColumns;
+};
+
 class ResizeableBuffer{
   constructor(size=100){
     this.size = size;
@@ -60314,6 +60780,462 @@ class ResizeableBuffer{
   }
 }
 
+const init_state = function(options){
+  return {
+    bomSkipped: false,
+    bufBytesStart: 0,
+    castField: options.cast_function,
+    commenting: false,
+    // Current error encountered by a record
+    error: undefined,
+    enabled: options.from_line === 1,
+    escaping: false,
+    escapeIsQuote: Buffer.isBuffer(options.escape) && Buffer.isBuffer(options.quote) && Buffer.compare(options.escape, options.quote) === 0,
+    // columns can be `false`, `true`, `Array`
+    expectedRecordLength: Array.isArray(options.columns) ? options.columns.length : undefined,
+    field: new ResizeableBuffer(20),
+    firstLineToHeaders: options.cast_first_line_to_header,
+    needMoreDataSize: Math.max(
+      // Skip if the remaining buffer smaller than comment
+      options.comment !== null ? options.comment.length : 0,
+      // Skip if the remaining buffer can be delimiter
+      ...options.delimiter.map((delimiter) => delimiter.length),
+      // Skip if the remaining buffer can be escape sequence
+      options.quote !== null ? options.quote.length : 0,
+    ),
+    previousBuf: undefined,
+    quoting: false,
+    stop: false,
+    rawBuffer: new ResizeableBuffer(100),
+    record: [],
+    recordHasError: false,
+    record_length: 0,
+    recordDelimiterMaxLength: options.record_delimiter.length === 0 ? 2 : Math.max(...options.record_delimiter.map((v) => v.length)),
+    trimChars: [Buffer.from(' ', options.encoding)[0], Buffer.from('\t', options.encoding)[0]],
+    wasQuoting: false,
+    wasRowDelimiter: false
+  };
+};
+
+const underscore = function(str){
+  return str.replace(/([A-Z])/g, function(_, match){
+    return '_' + match.toLowerCase();
+  });
+};
+
+const normalize_options = function(opts){
+  const options = {};
+  // Merge with user options
+  for(const opt in opts){
+    options[underscore(opt)] = opts[opt];
+  }
+  // Normalize option `encoding`
+  // Note: defined first because other options depends on it
+  // to convert chars/strings into buffers.
+  if(options.encoding === undefined || options.encoding === true){
+    options.encoding = 'utf8';
+  }else if(options.encoding === null || options.encoding === false){
+    options.encoding = null;
+  }else if(typeof options.encoding !== 'string' && options.encoding !== null){
+    throw new CsvError('CSV_INVALID_OPTION_ENCODING', [
+      'Invalid option encoding:',
+      'encoding must be a string or null to return a buffer,',
+      `got ${JSON.stringify(options.encoding)}`
+    ], options);
+  }
+  // Normalize option `bom`
+  if(options.bom === undefined || options.bom === null || options.bom === false){
+    options.bom = false;
+  }else if(options.bom !== true){
+    throw new CsvError('CSV_INVALID_OPTION_BOM', [
+      'Invalid option bom:', 'bom must be true,',
+      `got ${JSON.stringify(options.bom)}`
+    ], options);
+  }
+  // Normalize option `cast`
+  options.cast_function = null;
+  if(options.cast === undefined || options.cast === null || options.cast === false || options.cast === ''){
+    options.cast = undefined;
+  }else if(typeof options.cast === 'function'){
+    options.cast_function = options.cast;
+    options.cast = true;
+  }else if(options.cast !== true){
+    throw new CsvError('CSV_INVALID_OPTION_CAST', [
+      'Invalid option cast:', 'cast must be true or a function,',
+      `got ${JSON.stringify(options.cast)}`
+    ], options);
+  }
+  // Normalize option `cast_date`
+  if(options.cast_date === undefined || options.cast_date === null || options.cast_date === false || options.cast_date === ''){
+    options.cast_date = false;
+  }else if(options.cast_date === true){
+    options.cast_date = function(value){
+      const date = Date.parse(value);
+      return !isNaN(date) ? new Date(date) : value;
+    };
+  }else {
+    throw new CsvError('CSV_INVALID_OPTION_CAST_DATE', [
+      'Invalid option cast_date:', 'cast_date must be true or a function,',
+      `got ${JSON.stringify(options.cast_date)}`
+    ], options);
+  }
+  // Normalize option `columns`
+  options.cast_first_line_to_header = null;
+  if(options.columns === true){
+    // Fields in the first line are converted as-is to columns
+    options.cast_first_line_to_header = undefined;
+  }else if(typeof options.columns === 'function'){
+    options.cast_first_line_to_header = options.columns;
+    options.columns = true;
+  }else if(Array.isArray(options.columns)){
+    options.columns = normalize_columns_array(options.columns);
+  }else if(options.columns === undefined || options.columns === null || options.columns === false){
+    options.columns = false;
+  }else {
+    throw new CsvError('CSV_INVALID_OPTION_COLUMNS', [
+      'Invalid option columns:',
+      'expect an array, a function or true,',
+      `got ${JSON.stringify(options.columns)}`
+    ], options);
+  }
+  // Normalize option `group_columns_by_name`
+  if(options.group_columns_by_name === undefined || options.group_columns_by_name === null || options.group_columns_by_name === false){
+    options.group_columns_by_name = false;
+  }else if(options.group_columns_by_name !== true){
+    throw new CsvError('CSV_INVALID_OPTION_GROUP_COLUMNS_BY_NAME', [
+      'Invalid option group_columns_by_name:',
+      'expect an boolean,',
+      `got ${JSON.stringify(options.group_columns_by_name)}`
+    ], options);
+  }else if(options.columns === false){
+    throw new CsvError('CSV_INVALID_OPTION_GROUP_COLUMNS_BY_NAME', [
+      'Invalid option group_columns_by_name:',
+      'the `columns` mode must be activated.'
+    ], options);
+  }
+  // Normalize option `comment`
+  if(options.comment === undefined || options.comment === null || options.comment === false || options.comment === ''){
+    options.comment = null;
+  }else {
+    if(typeof options.comment === 'string'){
+      options.comment = Buffer.from(options.comment, options.encoding);
+    }
+    if(!Buffer.isBuffer(options.comment)){
+      throw new CsvError('CSV_INVALID_OPTION_COMMENT', [
+        'Invalid option comment:',
+        'comment must be a buffer or a string,',
+        `got ${JSON.stringify(options.comment)}`
+      ], options);
+    }
+  }
+  // Normalize option `delimiter`
+  const delimiter_json = JSON.stringify(options.delimiter);
+  if(!Array.isArray(options.delimiter)) options.delimiter = [options.delimiter];
+  if(options.delimiter.length === 0){
+    throw new CsvError('CSV_INVALID_OPTION_DELIMITER', [
+      'Invalid option delimiter:',
+      'delimiter must be a non empty string or buffer or array of string|buffer,',
+      `got ${delimiter_json}`
+    ], options);
+  }
+  options.delimiter = options.delimiter.map(function(delimiter){
+    if(delimiter === undefined || delimiter === null || delimiter === false){
+      return Buffer.from(',', options.encoding);
+    }
+    if(typeof delimiter === 'string'){
+      delimiter = Buffer.from(delimiter, options.encoding);
+    }
+    if(!Buffer.isBuffer(delimiter) || delimiter.length === 0){
+      throw new CsvError('CSV_INVALID_OPTION_DELIMITER', [
+        'Invalid option delimiter:',
+        'delimiter must be a non empty string or buffer or array of string|buffer,',
+        `got ${delimiter_json}`
+      ], options);
+    }
+    return delimiter;
+  });
+  // Normalize option `escape`
+  if(options.escape === undefined || options.escape === true){
+    options.escape = Buffer.from('"', options.encoding);
+  }else if(typeof options.escape === 'string'){
+    options.escape = Buffer.from(options.escape, options.encoding);
+  }else if (options.escape === null || options.escape === false){
+    options.escape = null;
+  }
+  if(options.escape !== null){
+    if(!Buffer.isBuffer(options.escape)){
+      throw new Error(`Invalid Option: escape must be a buffer, a string or a boolean, got ${JSON.stringify(options.escape)}`);
+    }
+  }
+  // Normalize option `from`
+  if(options.from === undefined || options.from === null){
+    options.from = 1;
+  }else {
+    if(typeof options.from === 'string' && /\d+/.test(options.from)){
+      options.from = parseInt(options.from);
+    }
+    if(Number.isInteger(options.from)){
+      if(options.from < 0){
+        throw new Error(`Invalid Option: from must be a positive integer, got ${JSON.stringify(opts.from)}`);
+      }
+    }else {
+      throw new Error(`Invalid Option: from must be an integer, got ${JSON.stringify(options.from)}`);
+    }
+  }
+  // Normalize option `from_line`
+  if(options.from_line === undefined || options.from_line === null){
+    options.from_line = 1;
+  }else {
+    if(typeof options.from_line === 'string' && /\d+/.test(options.from_line)){
+      options.from_line = parseInt(options.from_line);
+    }
+    if(Number.isInteger(options.from_line)){
+      if(options.from_line <= 0){
+        throw new Error(`Invalid Option: from_line must be a positive integer greater than 0, got ${JSON.stringify(opts.from_line)}`);
+      }
+    }else {
+      throw new Error(`Invalid Option: from_line must be an integer, got ${JSON.stringify(opts.from_line)}`);
+    }
+  }
+  // Normalize options `ignore_last_delimiters`
+  if(options.ignore_last_delimiters === undefined || options.ignore_last_delimiters === null){
+    options.ignore_last_delimiters = false;
+  }else if(typeof options.ignore_last_delimiters === 'number'){
+    options.ignore_last_delimiters = Math.floor(options.ignore_last_delimiters);
+    if(options.ignore_last_delimiters === 0){
+      options.ignore_last_delimiters = false;
+    }
+  }else if(typeof options.ignore_last_delimiters !== 'boolean'){
+    throw new CsvError('CSV_INVALID_OPTION_IGNORE_LAST_DELIMITERS', [
+      'Invalid option `ignore_last_delimiters`:',
+      'the value must be a boolean value or an integer,',
+      `got ${JSON.stringify(options.ignore_last_delimiters)}`
+    ], options);
+  }
+  if(options.ignore_last_delimiters === true && options.columns === false){
+    throw new CsvError('CSV_IGNORE_LAST_DELIMITERS_REQUIRES_COLUMNS', [
+      'The option `ignore_last_delimiters`',
+      'requires the activation of the `columns` option'
+    ], options);
+  }
+  // Normalize option `info`
+  if(options.info === undefined || options.info === null || options.info === false){
+    options.info = false;
+  }else if(options.info !== true){
+    throw new Error(`Invalid Option: info must be true, got ${JSON.stringify(options.info)}`);
+  }
+  // Normalize option `max_record_size`
+  if(options.max_record_size === undefined || options.max_record_size === null || options.max_record_size === false){
+    options.max_record_size = 0;
+  }else if(Number.isInteger(options.max_record_size) && options.max_record_size >= 0);else if(typeof options.max_record_size === 'string' && /\d+/.test(options.max_record_size)){
+    options.max_record_size = parseInt(options.max_record_size);
+  }else {
+    throw new Error(`Invalid Option: max_record_size must be a positive integer, got ${JSON.stringify(options.max_record_size)}`);
+  }
+  // Normalize option `objname`
+  if(options.objname === undefined || options.objname === null || options.objname === false){
+    options.objname = undefined;
+  }else if(Buffer.isBuffer(options.objname)){
+    if(options.objname.length === 0){
+      throw new Error(`Invalid Option: objname must be a non empty buffer`);
+    }
+    if(options.encoding === null);else {
+      options.objname = options.objname.toString(options.encoding);
+    }
+  }else if(typeof options.objname === 'string'){
+    if(options.objname.length === 0){
+      throw new Error(`Invalid Option: objname must be a non empty string`);
+    }
+    // Great, nothing to do
+  }else if(typeof options.objname === 'number');else {
+    throw new Error(`Invalid Option: objname must be a string or a buffer, got ${options.objname}`);
+  }
+  if(options.objname !== undefined){
+    if(typeof options.objname === 'number'){
+      if(options.columns !== false){
+        throw Error('Invalid Option: objname index cannot be combined with columns or be defined as a field');
+      }
+    }else { // A string or a buffer
+      if(options.columns === false){
+        throw Error('Invalid Option: objname field must be combined with columns or be defined as an index');
+      }
+    }
+  }
+  // Normalize option `on_record`
+  if(options.on_record === undefined || options.on_record === null){
+    options.on_record = undefined;
+  }else if(typeof options.on_record !== 'function'){
+    throw new CsvError('CSV_INVALID_OPTION_ON_RECORD', [
+      'Invalid option `on_record`:',
+      'expect a function,',
+      `got ${JSON.stringify(options.on_record)}`
+    ], options);
+  }
+  // Normalize option `quote`
+  if(options.quote === null || options.quote === false || options.quote === ''){
+    options.quote = null;
+  }else {
+    if(options.quote === undefined || options.quote === true){
+      options.quote = Buffer.from('"', options.encoding);
+    }else if(typeof options.quote === 'string'){
+      options.quote = Buffer.from(options.quote, options.encoding);
+    }
+    if(!Buffer.isBuffer(options.quote)){
+      throw new Error(`Invalid Option: quote must be a buffer or a string, got ${JSON.stringify(options.quote)}`);
+    }
+  }
+  // Normalize option `raw`
+  if(options.raw === undefined || options.raw === null || options.raw === false){
+    options.raw = false;
+  }else if(options.raw !== true){
+    throw new Error(`Invalid Option: raw must be true, got ${JSON.stringify(options.raw)}`);
+  }
+  // Normalize option `record_delimiter`
+  if(options.record_delimiter === undefined){
+    options.record_delimiter = [];
+  }else if(typeof options.record_delimiter === 'string' || Buffer.isBuffer(options.record_delimiter)){
+    if(options.record_delimiter.length === 0){
+      throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
+        'Invalid option `record_delimiter`:',
+        'value must be a non empty string or buffer,',
+        `got ${JSON.stringify(options.record_delimiter)}`
+      ], options);
+    }
+    options.record_delimiter = [options.record_delimiter];
+  }else if(!Array.isArray(options.record_delimiter)){
+    throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
+      'Invalid option `record_delimiter`:',
+      'value must be a string, a buffer or array of string|buffer,',
+      `got ${JSON.stringify(options.record_delimiter)}`
+    ], options);
+  }
+  options.record_delimiter = options.record_delimiter.map(function(rd, i){
+    if(typeof rd !== 'string' && ! Buffer.isBuffer(rd)){
+      throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
+        'Invalid option `record_delimiter`:',
+        'value must be a string, a buffer or array of string|buffer',
+        `at index ${i},`,
+        `got ${JSON.stringify(rd)}`
+      ], options);
+    }else if(rd.length === 0){
+      throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
+        'Invalid option `record_delimiter`:',
+        'value must be a non empty string or buffer',
+        `at index ${i},`,
+        `got ${JSON.stringify(rd)}`
+      ], options);
+    }
+    if(typeof rd === 'string'){
+      rd = Buffer.from(rd, options.encoding);
+    }
+    return rd;
+  });
+  // Normalize option `relax_column_count`
+  if(typeof options.relax_column_count === 'boolean');else if(options.relax_column_count === undefined || options.relax_column_count === null){
+    options.relax_column_count = false;
+  }else {
+    throw new Error(`Invalid Option: relax_column_count must be a boolean, got ${JSON.stringify(options.relax_column_count)}`);
+  }
+  if(typeof options.relax_column_count_less === 'boolean');else if(options.relax_column_count_less === undefined || options.relax_column_count_less === null){
+    options.relax_column_count_less = false;
+  }else {
+    throw new Error(`Invalid Option: relax_column_count_less must be a boolean, got ${JSON.stringify(options.relax_column_count_less)}`);
+  }
+  if(typeof options.relax_column_count_more === 'boolean');else if(options.relax_column_count_more === undefined || options.relax_column_count_more === null){
+    options.relax_column_count_more = false;
+  }else {
+    throw new Error(`Invalid Option: relax_column_count_more must be a boolean, got ${JSON.stringify(options.relax_column_count_more)}`);
+  }
+  // Normalize option `relax_quotes`
+  if(typeof options.relax_quotes === 'boolean');else if(options.relax_quotes === undefined || options.relax_quotes === null){
+    options.relax_quotes = false;
+  }else {
+    throw new Error(`Invalid Option: relax_quotes must be a boolean, got ${JSON.stringify(options.relax_quotes)}`);
+  }
+  // Normalize option `skip_empty_lines`
+  if(typeof options.skip_empty_lines === 'boolean');else if(options.skip_empty_lines === undefined || options.skip_empty_lines === null){
+    options.skip_empty_lines = false;
+  }else {
+    throw new Error(`Invalid Option: skip_empty_lines must be a boolean, got ${JSON.stringify(options.skip_empty_lines)}`);
+  }
+  // Normalize option `skip_records_with_empty_values`
+  if(typeof options.skip_records_with_empty_values === 'boolean');else if(options.skip_records_with_empty_values === undefined || options.skip_records_with_empty_values === null){
+    options.skip_records_with_empty_values = false;
+  }else {
+    throw new Error(`Invalid Option: skip_records_with_empty_values must be a boolean, got ${JSON.stringify(options.skip_records_with_empty_values)}`);
+  }
+  // Normalize option `skip_records_with_error`
+  if(typeof options.skip_records_with_error === 'boolean');else if(options.skip_records_with_error === undefined || options.skip_records_with_error === null){
+    options.skip_records_with_error = false;
+  }else {
+    throw new Error(`Invalid Option: skip_records_with_error must be a boolean, got ${JSON.stringify(options.skip_records_with_error)}`);
+  }
+  // Normalize option `rtrim`
+  if(options.rtrim === undefined || options.rtrim === null || options.rtrim === false){
+    options.rtrim = false;
+  }else if(options.rtrim !== true){
+    throw new Error(`Invalid Option: rtrim must be a boolean, got ${JSON.stringify(options.rtrim)}`);
+  }
+  // Normalize option `ltrim`
+  if(options.ltrim === undefined || options.ltrim === null || options.ltrim === false){
+    options.ltrim = false;
+  }else if(options.ltrim !== true){
+    throw new Error(`Invalid Option: ltrim must be a boolean, got ${JSON.stringify(options.ltrim)}`);
+  }
+  // Normalize option `trim`
+  if(options.trim === undefined || options.trim === null || options.trim === false){
+    options.trim = false;
+  }else if(options.trim !== true){
+    throw new Error(`Invalid Option: trim must be a boolean, got ${JSON.stringify(options.trim)}`);
+  }
+  // Normalize options `trim`, `ltrim` and `rtrim`
+  if(options.trim === true && opts.ltrim !== false){
+    options.ltrim = true;
+  }else if(options.ltrim !== true){
+    options.ltrim = false;
+  }
+  if(options.trim === true && opts.rtrim !== false){
+    options.rtrim = true;
+  }else if(options.rtrim !== true){
+    options.rtrim = false;
+  }
+  // Normalize option `to`
+  if(options.to === undefined || options.to === null){
+    options.to = -1;
+  }else {
+    if(typeof options.to === 'string' && /\d+/.test(options.to)){
+      options.to = parseInt(options.to);
+    }
+    if(Number.isInteger(options.to)){
+      if(options.to <= 0){
+        throw new Error(`Invalid Option: to must be a positive integer greater than 0, got ${JSON.stringify(opts.to)}`);
+      }
+    }else {
+      throw new Error(`Invalid Option: to must be an integer, got ${JSON.stringify(opts.to)}`);
+    }
+  }
+  // Normalize option `to_line`
+  if(options.to_line === undefined || options.to_line === null){
+    options.to_line = -1;
+  }else {
+    if(typeof options.to_line === 'string' && /\d+/.test(options.to_line)){
+      options.to_line = parseInt(options.to_line);
+    }
+    if(Number.isInteger(options.to_line)){
+      if(options.to_line <= 0){
+        throw new Error(`Invalid Option: to_line must be a positive integer greater than 0, got ${JSON.stringify(opts.to_line)}`);
+      }
+    }else {
+      throw new Error(`Invalid Option: to_line must be an integer, got ${JSON.stringify(opts.to_line)}`);
+    }
+  }
+  return options;
+};
+
+const isRecordEmpty = function(record){
+  return record.every((field) => field == null || field.toString && field.toString().trim() === '');
+};
+
 // white space characters
 // https://en.wikipedia.org/wiki/Whitespace_character
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Character_Classes#Types
@@ -60335,527 +61257,699 @@ const boms = {
   'utf16le': Buffer.from([255, 254])
 };
 
-class CsvError extends Error {
-  constructor(code, message, options, ...contexts) {
-    if(Array.isArray(message)) message = message.join(' ');
-    super(message);
-    if(Error.captureStackTrace !== undefined){
-      Error.captureStackTrace(this, CsvError);
-    }
-    this.code = code;
-    for(const context of contexts){
-      for(const key in context){
-        const value = context[key];
-        this[key] = Buffer.isBuffer(value) ? value.toString(options.encoding) : value == null ? value : JSON.parse(JSON.stringify(value));
+const transform = function(original_options = {}) {
+  const info = {
+    bytes: 0,
+    comment_lines: 0,
+    empty_lines: 0,
+    invalid_field_length: 0,
+    lines: 1,
+    records: 0
+  };
+  const options = normalize_options(original_options);
+  return {
+    info: info,
+    original_options: original_options,
+    options: options,
+    state: init_state(options),
+    __needMoreData: function(i, bufLen, end){
+      if(end) return false;
+      const {quote} = this.options;
+      const {quoting, needMoreDataSize, recordDelimiterMaxLength} = this.state;
+      const numOfCharLeft = bufLen - i - 1;
+      const requiredLength = Math.max(
+        needMoreDataSize,
+        // Skip if the remaining buffer smaller than record delimiter
+        recordDelimiterMaxLength,
+        // Skip if the remaining buffer can be record delimiter following the closing quote
+        // 1 is for quote.length
+        quoting ? (quote.length + recordDelimiterMaxLength) : 0,
+      );
+      return numOfCharLeft < requiredLength;
+    },
+    // Central parser implementation
+    parse: function(nextBuf, end, push, close){
+      const {bom, comment, escape, from_line, ltrim, max_record_size, quote, raw, relax_quotes, rtrim, skip_empty_lines, to, to_line} = this.options;
+      let {record_delimiter} = this.options;
+      const {bomSkipped, previousBuf, rawBuffer, escapeIsQuote} = this.state;
+      let buf;
+      if(previousBuf === undefined){
+        if(nextBuf === undefined){
+          // Handle empty string
+          close();
+          return;
+        }else {
+          buf = nextBuf;
+        }
+      }else if(previousBuf !== undefined && nextBuf === undefined){
+        buf = previousBuf;
+      }else {
+        buf = Buffer.concat([previousBuf, nextBuf]);
       }
-    }
-  }
-}
-
-const underscore = function(str){
-  return str.replace(/([A-Z])/g, function(_, match){
-    return '_' + match.toLowerCase();
-  });
-};
-
-const isObject = function(obj){
-  return (typeof obj === 'object' && obj !== null && !Array.isArray(obj));
-};
-
-const isRecordEmpty = function(record){
-  return record.every((field) => field == null || field.toString && field.toString().trim() === '');
-};
-
-const normalizeColumnsArray = function(columns){
-  const normalizedColumns = [];
-  for(let i = 0, l = columns.length; i < l; i++){
-    const column = columns[i];
-    if(column === undefined || column === null || column === false){
-      normalizedColumns[i] = { disabled: true };
-    }else if(typeof column === 'string'){
-      normalizedColumns[i] = { name: column };
-    }else if(isObject(column)){
-      if(typeof column.name !== 'string'){
-        throw new CsvError('CSV_OPTION_COLUMNS_MISSING_NAME', [
-          'Option columns missing name:',
-          `property "name" is required at position ${i}`,
-          'when column is an object literal'
-        ]);
+      // Handle UTF BOM
+      if(bomSkipped === false){
+        if(bom === false){
+          this.state.bomSkipped = true;
+        }else if(buf.length < 3){
+          // No enough data
+          if(end === false){
+            // Wait for more data
+            this.state.previousBuf = buf;
+            return;
+          }
+        }else {
+          for(const encoding in boms){
+            if(boms[encoding].compare(buf, 0, boms[encoding].length) === 0){
+              // Skip BOM
+              const bomLength = boms[encoding].length;
+              this.state.bufBytesStart += bomLength;
+              buf = buf.slice(bomLength);
+              // Renormalize original options with the new encoding
+              this.options = normalize_options({...this.original_options, encoding: encoding});
+              break;
+            }
+          }
+          this.state.bomSkipped = true;
+        }
       }
-      normalizedColumns[i] = column;
-    }else {
-      throw new CsvError('CSV_INVALID_COLUMN_DEFINITION', [
-        'Invalid column definition:',
-        'expect a string or a literal object,',
-        `got ${JSON.stringify(column)} at position ${i}`
-      ]);
+      const bufLen = buf.length;
+      let pos;
+      for(pos = 0; pos < bufLen; pos++){
+        // Ensure we get enough space to look ahead
+        // There should be a way to move this out of the loop
+        if(this.__needMoreData(pos, bufLen, end)){
+          break;
+        }
+        if(this.state.wasRowDelimiter === true){
+          this.info.lines++;
+          this.state.wasRowDelimiter = false;
+        }
+        if(to_line !== -1 && this.info.lines > to_line){
+          this.state.stop = true;
+          close();
+          return;
+        }
+        // Auto discovery of record_delimiter, unix, mac and windows supported
+        if(this.state.quoting === false && record_delimiter.length === 0){
+          const record_delimiterCount = this.__autoDiscoverRecordDelimiter(buf, pos);
+          if(record_delimiterCount){
+            record_delimiter = this.options.record_delimiter;
+          }
+        }
+        const chr = buf[pos];
+        if(raw === true){
+          rawBuffer.append(chr);
+        }
+        if((chr === cr || chr === nl) && this.state.wasRowDelimiter === false){
+          this.state.wasRowDelimiter = true;
+        }
+        // Previous char was a valid escape char
+        // treat the current char as a regular char
+        if(this.state.escaping === true){
+          this.state.escaping = false;
+        }else {
+          // Escape is only active inside quoted fields
+          // We are quoting, the char is an escape chr and there is a chr to escape
+          // if(escape !== null && this.state.quoting === true && chr === escape && pos + 1 < bufLen){
+          if(escape !== null && this.state.quoting === true && this.__isEscape(buf, pos, chr) && pos + escape.length < bufLen){
+            if(escapeIsQuote){
+              if(this.__isQuote(buf, pos+escape.length)){
+                this.state.escaping = true;
+                pos += escape.length - 1;
+                continue;
+              }
+            }else {
+              this.state.escaping = true;
+              pos += escape.length - 1;
+              continue;
+            }
+          }
+          // Not currently escaping and chr is a quote
+          // TODO: need to compare bytes instead of single char
+          if(this.state.commenting === false && this.__isQuote(buf, pos)){
+            if(this.state.quoting === true){
+              const nextChr = buf[pos+quote.length];
+              const isNextChrTrimable = rtrim && this.__isCharTrimable(nextChr);
+              const isNextChrComment = comment !== null && this.__compareBytes(comment, buf, pos+quote.length, nextChr);
+              const isNextChrDelimiter = this.__isDelimiter(buf, pos+quote.length, nextChr);
+              const isNextChrRecordDelimiter = record_delimiter.length === 0 ? this.__autoDiscoverRecordDelimiter(buf, pos+quote.length) : this.__isRecordDelimiter(nextChr, buf, pos+quote.length);
+              // Escape a quote
+              // Treat next char as a regular character
+              if(escape !== null && this.__isEscape(buf, pos, chr) && this.__isQuote(buf, pos + escape.length)){
+                pos += escape.length - 1;
+              }else if(!nextChr || isNextChrDelimiter || isNextChrRecordDelimiter || isNextChrComment || isNextChrTrimable){
+                this.state.quoting = false;
+                this.state.wasQuoting = true;
+                pos += quote.length - 1;
+                continue;
+              }else if(relax_quotes === false){
+                const err = this.__error(
+                  new CsvError('CSV_INVALID_CLOSING_QUOTE', [
+                    'Invalid Closing Quote:',
+                    `got "${String.fromCharCode(nextChr)}"`,
+                    `at line ${this.info.lines}`,
+                    'instead of delimiter, record delimiter, trimable character',
+                    '(if activated) or comment',
+                  ], this.options, this.__infoField())
+                );
+                if(err !== undefined) return err;
+              }else {
+                this.state.quoting = false;
+                this.state.wasQuoting = true;
+                this.state.field.prepend(quote);
+                pos += quote.length - 1;
+              }
+            }else {
+              if(this.state.field.length !== 0){
+                // In relax_quotes mode, treat opening quote preceded by chrs as regular
+                if(relax_quotes === false){
+                  const err = this.__error(
+                    new CsvError('INVALID_OPENING_QUOTE', [
+                      'Invalid Opening Quote:',
+                      `a quote is found inside a field at line ${this.info.lines}`,
+                    ], this.options, this.__infoField(), {
+                      field: this.state.field,
+                    })
+                  );
+                  if(err !== undefined) return err;
+                }
+              }else {
+                this.state.quoting = true;
+                pos += quote.length - 1;
+                continue;
+              }
+            }
+          }
+          if(this.state.quoting === false){
+            const recordDelimiterLength = this.__isRecordDelimiter(chr, buf, pos);
+            if(recordDelimiterLength !== 0){
+              // Do not emit comments which take a full line
+              const skipCommentLine = this.state.commenting && (this.state.wasQuoting === false && this.state.record.length === 0 && this.state.field.length === 0);
+              if(skipCommentLine){
+                this.info.comment_lines++;
+                // Skip full comment line
+              }else {
+                // Activate records emition if above from_line
+                if(this.state.enabled === false && this.info.lines + (this.state.wasRowDelimiter === true ? 1: 0) >= from_line){
+                  this.state.enabled = true;
+                  this.__resetField();
+                  this.__resetRecord();
+                  pos += recordDelimiterLength - 1;
+                  continue;
+                }
+                // Skip if line is empty and skip_empty_lines activated
+                if(skip_empty_lines === true && this.state.wasQuoting === false && this.state.record.length === 0 && this.state.field.length === 0){
+                  this.info.empty_lines++;
+                  pos += recordDelimiterLength - 1;
+                  continue;
+                }
+                this.info.bytes = this.state.bufBytesStart + pos;
+                const errField = this.__onField();
+                if(errField !== undefined) return errField;
+                this.info.bytes = this.state.bufBytesStart + pos + recordDelimiterLength;
+                const errRecord = this.__onRecord(push);
+                if(errRecord !== undefined) return errRecord;
+                if(to !== -1 && this.info.records >= to){
+                  this.state.stop = true;
+                  close();
+                  return;
+                }
+              }
+              this.state.commenting = false;
+              pos += recordDelimiterLength - 1;
+              continue;
+            }
+            if(this.state.commenting){
+              continue;
+            }
+            const commentCount = comment === null ? 0 : this.__compareBytes(comment, buf, pos, chr);
+            if(commentCount !== 0){
+              this.state.commenting = true;
+              continue;
+            }
+            const delimiterLength = this.__isDelimiter(buf, pos, chr);
+            if(delimiterLength !== 0){
+              this.info.bytes = this.state.bufBytesStart + pos;
+              const errField = this.__onField();
+              if(errField !== undefined) return errField;
+              pos += delimiterLength - 1;
+              continue;
+            }
+          }
+        }
+        if(this.state.commenting === false){
+          if(max_record_size !== 0 && this.state.record_length + this.state.field.length > max_record_size){
+            const err = this.__error(
+              new CsvError('CSV_MAX_RECORD_SIZE', [
+                'Max Record Size:',
+                'record exceed the maximum number of tolerated bytes',
+                `of ${max_record_size}`,
+                `at line ${this.info.lines}`,
+              ], this.options, this.__infoField())
+            );
+            if(err !== undefined) return err;
+          }
+        }
+        const lappend = ltrim === false || this.state.quoting === true || this.state.field.length !== 0 || !this.__isCharTrimable(chr);
+        // rtrim in non quoting is handle in __onField
+        const rappend = rtrim === false || this.state.wasQuoting === false;
+        if(lappend === true && rappend === true){
+          this.state.field.append(chr);
+        }else if(rtrim === true && !this.__isCharTrimable(chr)){
+          const err = this.__error(
+            new CsvError('CSV_NON_TRIMABLE_CHAR_AFTER_CLOSING_QUOTE', [
+              'Invalid Closing Quote:',
+              'found non trimable byte after quote',
+              `at line ${this.info.lines}`,
+            ], this.options, this.__infoField())
+          );
+          if(err !== undefined) return err;
+        }
+      }
+      if(end === true){
+        // Ensure we are not ending in a quoting state
+        if(this.state.quoting === true){
+          const err = this.__error(
+            new CsvError('CSV_QUOTE_NOT_CLOSED', [
+              'Quote Not Closed:',
+              `the parsing is finished with an opening quote at line ${this.info.lines}`,
+            ], this.options, this.__infoField())
+          );
+          if(err !== undefined) return err;
+        }else {
+          // Skip last line if it has no characters
+          if(this.state.wasQuoting === true || this.state.record.length !== 0 || this.state.field.length !== 0){
+            this.info.bytes = this.state.bufBytesStart + pos;
+            const errField = this.__onField();
+            if(errField !== undefined) return errField;
+            const errRecord = this.__onRecord(push);
+            if(errRecord !== undefined) return errRecord;
+          }else if(this.state.wasRowDelimiter === true){
+            this.info.empty_lines++;
+          }else if(this.state.commenting === true){
+            this.info.comment_lines++;
+          }
+        }
+      }else {
+        this.state.bufBytesStart += pos;
+        this.state.previousBuf = buf.slice(pos);
+      }
+      if(this.state.wasRowDelimiter === true){
+        this.info.lines++;
+        this.state.wasRowDelimiter = false;
+      }
+    },
+    __onRecord: function(push){
+      const {columns, group_columns_by_name, encoding, info, from, relax_column_count, relax_column_count_less, relax_column_count_more, raw, skip_records_with_empty_values} = this.options;
+      const {enabled, record} = this.state;
+      if(enabled === false){
+        return this.__resetRecord();
+      }
+      // Convert the first line into column names
+      const recordLength = record.length;
+      if(columns === true){
+        if(skip_records_with_empty_values === true && isRecordEmpty(record)){
+          this.__resetRecord();
+          return;
+        }
+        return this.__firstLineToColumns(record);
+      }
+      if(columns === false && this.info.records === 0){
+        this.state.expectedRecordLength = recordLength;
+      }
+      if(recordLength !== this.state.expectedRecordLength){
+        const err = columns === false ?
+          new CsvError('CSV_RECORD_INCONSISTENT_FIELDS_LENGTH', [
+            'Invalid Record Length:',
+            `expect ${this.state.expectedRecordLength},`,
+            `got ${recordLength} on line ${this.info.lines}`,
+          ], this.options, this.__infoField(), {
+            record: record,
+          })
+          :
+          new CsvError('CSV_RECORD_INCONSISTENT_COLUMNS', [
+            'Invalid Record Length:',
+            `columns length is ${columns.length},`, // rename columns
+            `got ${recordLength} on line ${this.info.lines}`,
+          ], this.options, this.__infoField(), {
+            record: record,
+          });
+        if(relax_column_count === true ||
+          (relax_column_count_less === true && recordLength < this.state.expectedRecordLength) ||
+          (relax_column_count_more === true && recordLength > this.state.expectedRecordLength)){
+          this.info.invalid_field_length++;
+          this.state.error = err;
+        // Error is undefined with skip_records_with_error
+        }else {
+          const finalErr = this.__error(err);
+          if(finalErr) return finalErr;
+        }
+      }
+      if(skip_records_with_empty_values === true && isRecordEmpty(record)){
+        this.__resetRecord();
+        return;
+      }
+      if(this.state.recordHasError === true){
+        this.__resetRecord();
+        this.state.recordHasError = false;
+        return;
+      }
+      this.info.records++;
+      if(from === 1 || this.info.records >= from){
+        const {objname} = this.options;
+        // With columns, records are object
+        if(columns !== false){
+          const obj = {};
+          // Transform record array to an object
+          for(let i = 0, l = record.length; i < l; i++){
+            if(columns[i] === undefined || columns[i].disabled) continue;
+            // Turn duplicate columns into an array
+            if (group_columns_by_name === true && obj[columns[i].name] !== undefined) {
+              if (Array.isArray(obj[columns[i].name])) {
+                obj[columns[i].name] = obj[columns[i].name].concat(record[i]);
+              } else {
+                obj[columns[i].name] = [obj[columns[i].name], record[i]];
+              }
+            } else {
+              obj[columns[i].name] = record[i];
+            }
+          }
+          // Without objname (default)
+          if(raw === true || info === true){
+            const extRecord = Object.assign(
+              {record: obj},
+              (raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {}),
+              (info === true ? {info: this.__infoRecord()}: {})
+            );
+            const err = this.__push(
+              objname === undefined ? extRecord : [obj[objname], extRecord]
+              , push);
+            if(err){
+              return err;
+            }
+          }else {
+            const err = this.__push(
+              objname === undefined ? obj : [obj[objname], obj]
+              , push);
+            if(err){
+              return err;
+            }
+          }
+        // Without columns, records are array
+        }else {
+          if(raw === true || info === true){
+            const extRecord = Object.assign(
+              {record: record},
+              raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {},
+              info === true ? {info: this.__infoRecord()}: {}
+            );
+            const err = this.__push(
+              objname === undefined ? extRecord : [record[objname], extRecord]
+              , push);
+            if(err){
+              return err;
+            }
+          }else {
+            const err = this.__push(
+              objname === undefined ? record : [record[objname], record]
+              , push);
+            if(err){
+              return err;
+            }
+          }
+        }
+      }
+      this.__resetRecord();
+    },
+    __firstLineToColumns: function(record){
+      const {firstLineToHeaders} = this.state;
+      try{
+        const headers = firstLineToHeaders === undefined ? record : firstLineToHeaders.call(null, record);
+        if(!Array.isArray(headers)){
+          return this.__error(
+            new CsvError('CSV_INVALID_COLUMN_MAPPING', [
+              'Invalid Column Mapping:',
+              'expect an array from column function,',
+              `got ${JSON.stringify(headers)}`
+            ], this.options, this.__infoField(), {
+              headers: headers,
+            })
+          );
+        }
+        const normalizedHeaders = normalize_columns_array(headers);
+        this.state.expectedRecordLength = normalizedHeaders.length;
+        this.options.columns = normalizedHeaders;
+        this.__resetRecord();
+        return;
+      }catch(err){
+        return err;
+      }
+    },
+    __resetRecord: function(){
+      if(this.options.raw === true){
+        this.state.rawBuffer.reset();
+      }
+      this.state.error = undefined;
+      this.state.record = [];
+      this.state.record_length = 0;
+    },
+    __onField: function(){
+      const {cast, encoding, rtrim, max_record_size} = this.options;
+      const {enabled, wasQuoting} = this.state;
+      // Short circuit for the from_line options
+      if(enabled === false){
+        return this.__resetField();
+      }
+      let field = this.state.field.toString(encoding);
+      if(rtrim === true && wasQuoting === false){
+        field = field.trimRight();
+      }
+      if(cast === true){
+        const [err, f] = this.__cast(field);
+        if(err !== undefined) return err;
+        field = f;
+      }
+      this.state.record.push(field);
+      // Increment record length if record size must not exceed a limit
+      if(max_record_size !== 0 && typeof field === 'string'){
+        this.state.record_length += field.length;
+      }
+      this.__resetField();
+    },
+    __resetField: function(){
+      this.state.field.reset();
+      this.state.wasQuoting = false;
+    },
+    __push: function(record, push){
+      const {on_record} = this.options;
+      if(on_record !== undefined){
+        const info = this.__infoRecord();
+        try{
+          record = on_record.call(null, record, info);
+        }catch(err){
+          return err;
+        }
+        if(record === undefined || record === null){ return; }
+      }
+      push(record);
+    },
+    // Return a tuple with the error and the casted value
+    __cast: function(field){
+      const {columns, relax_column_count} = this.options;
+      const isColumns = Array.isArray(columns);
+      // Dont loose time calling cast
+      // because the final record is an object
+      // and this field can't be associated to a key present in columns
+      if(isColumns === true && relax_column_count && this.options.columns.length <= this.state.record.length){
+        return [undefined, undefined];
+      }
+      if(this.state.castField !== null){
+        try{
+          const info = this.__infoField();
+          return [undefined, this.state.castField.call(null, field, info)];
+        }catch(err){
+          return [err];
+        }
+      }
+      if(this.__isFloat(field)){
+        return [undefined, parseFloat(field)];
+      }else if(this.options.cast_date !== false){
+        const info = this.__infoField();
+        return [undefined, this.options.cast_date.call(null, field, info)];
+      }
+      return [undefined, field];
+    },
+    // Helper to test if a character is a space or a line delimiter
+    __isCharTrimable: function(chr){
+      return chr === space || chr === tab || chr === cr || chr === nl || chr === np;
+    },
+    // Keep it in case we implement the `cast_int` option
+    // __isInt(value){
+    //   // return Number.isInteger(parseInt(value))
+    //   // return !isNaN( parseInt( obj ) );
+    //   return /^(\-|\+)?[1-9][0-9]*$/.test(value)
+    // }
+    __isFloat: function(value){
+      return (value - parseFloat(value) + 1) >= 0; // Borrowed from jquery
+    },
+    __compareBytes: function(sourceBuf, targetBuf, targetPos, firstByte){
+      if(sourceBuf[0] !== firstByte) return 0;
+      const sourceLength = sourceBuf.length;
+      for(let i = 1; i < sourceLength; i++){
+        if(sourceBuf[i] !== targetBuf[targetPos+i]) return 0;
+      }
+      return sourceLength;
+    },
+    __isDelimiter: function(buf, pos, chr){
+      const {delimiter, ignore_last_delimiters} = this.options;
+      if(ignore_last_delimiters === true && this.state.record.length === this.options.columns.length - 1){
+        return 0;
+      }else if(ignore_last_delimiters !== false && typeof ignore_last_delimiters === 'number' && this.state.record.length === ignore_last_delimiters - 1){
+        return 0;
+      }
+      loop1: for(let i = 0; i < delimiter.length; i++){
+        const del = delimiter[i];
+        if(del[0] === chr){
+          for(let j = 1; j < del.length; j++){
+            if(del[j] !== buf[pos+j]) continue loop1;
+          }
+          return del.length;
+        }
+      }
+      return 0;
+    },
+    __isRecordDelimiter: function(chr, buf, pos){
+      const {record_delimiter} = this.options;
+      const recordDelimiterLength = record_delimiter.length;
+      loop1: for(let i = 0; i < recordDelimiterLength; i++){
+        const rd = record_delimiter[i];
+        const rdLength = rd.length;
+        if(rd[0] !== chr){
+          continue;
+        }
+        for(let j = 1; j < rdLength; j++){
+          if(rd[j] !== buf[pos+j]){
+            continue loop1;
+          }
+        }
+        return rd.length;
+      }
+      return 0;
+    },
+    __isEscape: function(buf, pos, chr){
+      const {escape} = this.options;
+      if(escape === null) return false;
+      const l = escape.length;
+      if(escape[0] === chr){
+        for(let i = 0; i < l; i++){
+          if(escape[i] !== buf[pos+i]){
+            return false;
+          }
+        }
+        return true;
+      }
+      return false;
+    },
+    __isQuote: function(buf, pos){
+      const {quote} = this.options;
+      if(quote === null) return false;
+      const l = quote.length;
+      for(let i = 0; i < l; i++){
+        if(quote[i] !== buf[pos+i]){
+          return false;
+        }
+      }
+      return true;
+    },
+    __autoDiscoverRecordDelimiter: function(buf, pos){
+      const {encoding} = this.options;
+      const chr = buf[pos];
+      if(chr === cr){
+        if(buf[pos+1] === nl){
+          this.options.record_delimiter.push(Buffer.from('\r\n', encoding));
+          this.state.recordDelimiterMaxLength = 2;
+          return 2;
+        }else {
+          this.options.record_delimiter.push(Buffer.from('\r', encoding));
+          this.state.recordDelimiterMaxLength = 1;
+          return 1;
+        }
+      }else if(chr === nl){
+        this.options.record_delimiter.push(Buffer.from('\n', encoding));
+        this.state.recordDelimiterMaxLength = 1;
+        return 1;
+      }
+      return 0;
+    },
+    __error: function(msg){
+      const {encoding, raw, skip_records_with_error} = this.options;
+      const err = typeof msg === 'string' ? new Error(msg) : msg;
+      if(skip_records_with_error){
+        this.state.recordHasError = true;
+        if(this.options.on_skip !== undefined){
+          this.options.on_skip(err, raw ? this.state.rawBuffer.toString(encoding) : undefined);
+        }
+        // this.emit('skip', err, raw ? this.state.rawBuffer.toString(encoding) : undefined);
+        return undefined;
+      }else {
+        return err;
+      }
+    },
+    __infoDataSet: function(){
+      return {
+        ...this.info,
+        columns: this.options.columns
+      };
+    },
+    __infoRecord: function(){
+      const {columns, raw, encoding} = this.options;
+      return {
+        ...this.__infoDataSet(),
+        error: this.state.error,
+        header: columns === true,
+        index: this.state.record.length,
+        raw: raw ? this.state.rawBuffer.toString(encoding) : undefined
+      };
+    },
+    __infoField: function(){
+      const {columns} = this.options;
+      const isColumns = Array.isArray(columns);
+      return {
+        ...this.__infoRecord(),
+        column: isColumns === true ?
+          (columns.length > this.state.record.length ?
+            columns[this.state.record.length].name :
+            null
+          ) :
+          this.state.record.length,
+        quoting: this.state.wasQuoting,
+      };
     }
-  }
-  return normalizedColumns;
+  };
 };
 
 class Parser extends stream.Transform {
   constructor(opts = {}){
     super({...{readableObjectMode: true}, ...opts, encoding: null});
-    this.__originalOptions = opts;
-    this.__normalizeOptions(opts);
-  }
-  __normalizeOptions(opts){
-    const options = {};
-    // Merge with user options
-    for(const opt in opts){
-      options[underscore(opt)] = opts[opt];
-    }
-    // Normalize option `encoding`
-    // Note: defined first because other options depends on it
-    // to convert chars/strings into buffers.
-    if(options.encoding === undefined || options.encoding === true){
-      options.encoding = 'utf8';
-    }else if(options.encoding === null || options.encoding === false){
-      options.encoding = null;
-    }else if(typeof options.encoding !== 'string' && options.encoding !== null){
-      throw new CsvError('CSV_INVALID_OPTION_ENCODING', [
-        'Invalid option encoding:',
-        'encoding must be a string or null to return a buffer,',
-        `got ${JSON.stringify(options.encoding)}`
-      ], options);
-    }
-    // Normalize option `bom`
-    if(options.bom === undefined || options.bom === null || options.bom === false){
-      options.bom = false;
-    }else if(options.bom !== true){
-      throw new CsvError('CSV_INVALID_OPTION_BOM', [
-        'Invalid option bom:', 'bom must be true,',
-        `got ${JSON.stringify(options.bom)}`
-      ], options);
-    }
-    // Normalize option `cast`
-    let fnCastField = null;
-    if(options.cast === undefined || options.cast === null || options.cast === false || options.cast === ''){
-      options.cast = undefined;
-    }else if(typeof options.cast === 'function'){
-      fnCastField = options.cast;
-      options.cast = true;
-    }else if(options.cast !== true){
-      throw new CsvError('CSV_INVALID_OPTION_CAST', [
-        'Invalid option cast:', 'cast must be true or a function,',
-        `got ${JSON.stringify(options.cast)}`
-      ], options);
-    }
-    // Normalize option `cast_date`
-    if(options.cast_date === undefined || options.cast_date === null || options.cast_date === false || options.cast_date === ''){
-      options.cast_date = false;
-    }else if(options.cast_date === true){
-      options.cast_date = function(value){
-        const date = Date.parse(value);
-        return !isNaN(date) ? new Date(date) : value;
-      };
-    }else {
-      throw new CsvError('CSV_INVALID_OPTION_CAST_DATE', [
-        'Invalid option cast_date:', 'cast_date must be true or a function,',
-        `got ${JSON.stringify(options.cast_date)}`
-      ], options);
-    }
-    // Normalize option `columns`
-    let fnFirstLineToHeaders = null;
-    if(options.columns === true){
-      // Fields in the first line are converted as-is to columns
-      fnFirstLineToHeaders = undefined;
-    }else if(typeof options.columns === 'function'){
-      fnFirstLineToHeaders = options.columns;
-      options.columns = true;
-    }else if(Array.isArray(options.columns)){
-      options.columns = normalizeColumnsArray(options.columns);
-    }else if(options.columns === undefined || options.columns === null || options.columns === false){
-      options.columns = false;
-    }else {
-      throw new CsvError('CSV_INVALID_OPTION_COLUMNS', [
-        'Invalid option columns:',
-        'expect an array, a function or true,',
-        `got ${JSON.stringify(options.columns)}`
-      ], options);
-    }
-    // Normalize option `group_columns_by_name`
-    if(options.group_columns_by_name === undefined || options.group_columns_by_name === null || options.group_columns_by_name === false){
-      options.group_columns_by_name = false;
-    }else if(options.group_columns_by_name !== true){
-      throw new CsvError('CSV_INVALID_OPTION_GROUP_COLUMNS_BY_NAME', [
-        'Invalid option group_columns_by_name:',
-        'expect an boolean,',
-        `got ${JSON.stringify(options.group_columns_by_name)}`
-      ], options);
-    }else if(options.columns === false){
-      throw new CsvError('CSV_INVALID_OPTION_GROUP_COLUMNS_BY_NAME', [
-        'Invalid option group_columns_by_name:',
-        'the `columns` mode must be activated.'
-      ], options);
-    }
-    // Normalize option `comment`
-    if(options.comment === undefined || options.comment === null || options.comment === false || options.comment === ''){
-      options.comment = null;
-    }else {
-      if(typeof options.comment === 'string'){
-        options.comment = Buffer.from(options.comment, options.encoding);
-      }
-      if(!Buffer.isBuffer(options.comment)){
-        throw new CsvError('CSV_INVALID_OPTION_COMMENT', [
-          'Invalid option comment:',
-          'comment must be a buffer or a string,',
-          `got ${JSON.stringify(options.comment)}`
-        ], options);
-      }
-    }
-    // Normalize option `delimiter`
-    const delimiter_json = JSON.stringify(options.delimiter);
-    if(!Array.isArray(options.delimiter)) options.delimiter = [options.delimiter];
-    if(options.delimiter.length === 0){
-      throw new CsvError('CSV_INVALID_OPTION_DELIMITER', [
-        'Invalid option delimiter:',
-        'delimiter must be a non empty string or buffer or array of string|buffer,',
-        `got ${delimiter_json}`
-      ], options);
-    }
-    options.delimiter = options.delimiter.map(function(delimiter){
-      if(delimiter === undefined || delimiter === null || delimiter === false){
-        return Buffer.from(',', options.encoding);
-      }
-      if(typeof delimiter === 'string'){
-        delimiter = Buffer.from(delimiter, options.encoding);
-      }
-      if(!Buffer.isBuffer(delimiter) || delimiter.length === 0){
-        throw new CsvError('CSV_INVALID_OPTION_DELIMITER', [
-          'Invalid option delimiter:',
-          'delimiter must be a non empty string or buffer or array of string|buffer,',
-          `got ${delimiter_json}`
-        ], options);
-      }
-      return delimiter;
-    });
-    // Normalize option `escape`
-    if(options.escape === undefined || options.escape === true){
-      options.escape = Buffer.from('"', options.encoding);
-    }else if(typeof options.escape === 'string'){
-      options.escape = Buffer.from(options.escape, options.encoding);
-    }else if (options.escape === null || options.escape === false){
-      options.escape = null;
-    }
-    if(options.escape !== null){
-      if(!Buffer.isBuffer(options.escape)){
-        throw new Error(`Invalid Option: escape must be a buffer, a string or a boolean, got ${JSON.stringify(options.escape)}`);
-      }
-    }
-    // Normalize option `from`
-    if(options.from === undefined || options.from === null){
-      options.from = 1;
-    }else {
-      if(typeof options.from === 'string' && /\d+/.test(options.from)){
-        options.from = parseInt(options.from);
-      }
-      if(Number.isInteger(options.from)){
-        if(options.from < 0){
-          throw new Error(`Invalid Option: from must be a positive integer, got ${JSON.stringify(opts.from)}`);
-        }
-      }else {
-        throw new Error(`Invalid Option: from must be an integer, got ${JSON.stringify(options.from)}`);
-      }
-    }
-    // Normalize option `from_line`
-    if(options.from_line === undefined || options.from_line === null){
-      options.from_line = 1;
-    }else {
-      if(typeof options.from_line === 'string' && /\d+/.test(options.from_line)){
-        options.from_line = parseInt(options.from_line);
-      }
-      if(Number.isInteger(options.from_line)){
-        if(options.from_line <= 0){
-          throw new Error(`Invalid Option: from_line must be a positive integer greater than 0, got ${JSON.stringify(opts.from_line)}`);
-        }
-      }else {
-        throw new Error(`Invalid Option: from_line must be an integer, got ${JSON.stringify(opts.from_line)}`);
-      }
-    }
-    // Normalize options `ignore_last_delimiters`
-    if(options.ignore_last_delimiters === undefined || options.ignore_last_delimiters === null){
-      options.ignore_last_delimiters = false;
-    }else if(typeof options.ignore_last_delimiters === 'number'){
-      options.ignore_last_delimiters = Math.floor(options.ignore_last_delimiters);
-      if(options.ignore_last_delimiters === 0){
-        options.ignore_last_delimiters = false;
-      }
-    }else if(typeof options.ignore_last_delimiters !== 'boolean'){
-      throw new CsvError('CSV_INVALID_OPTION_IGNORE_LAST_DELIMITERS', [
-        'Invalid option `ignore_last_delimiters`:',
-        'the value must be a boolean value or an integer,',
-        `got ${JSON.stringify(options.ignore_last_delimiters)}`
-      ], options);
-    }
-    if(options.ignore_last_delimiters === true && options.columns === false){
-      throw new CsvError('CSV_IGNORE_LAST_DELIMITERS_REQUIRES_COLUMNS', [
-        'The option `ignore_last_delimiters`',
-        'requires the activation of the `columns` option'
-      ], options);
-    }
-    // Normalize option `info`
-    if(options.info === undefined || options.info === null || options.info === false){
-      options.info = false;
-    }else if(options.info !== true){
-      throw new Error(`Invalid Option: info must be true, got ${JSON.stringify(options.info)}`);
-    }
-    // Normalize option `max_record_size`
-    if(options.max_record_size === undefined || options.max_record_size === null || options.max_record_size === false){
-      options.max_record_size = 0;
-    }else if(Number.isInteger(options.max_record_size) && options.max_record_size >= 0);else if(typeof options.max_record_size === 'string' && /\d+/.test(options.max_record_size)){
-      options.max_record_size = parseInt(options.max_record_size);
-    }else {
-      throw new Error(`Invalid Option: max_record_size must be a positive integer, got ${JSON.stringify(options.max_record_size)}`);
-    }
-    // Normalize option `objname`
-    if(options.objname === undefined || options.objname === null || options.objname === false){
-      options.objname = undefined;
-    }else if(Buffer.isBuffer(options.objname)){
-      if(options.objname.length === 0){
-        throw new Error(`Invalid Option: objname must be a non empty buffer`);
-      }
-      if(options.encoding === null);else {
-        options.objname = options.objname.toString(options.encoding);
-      }
-    }else if(typeof options.objname === 'string'){
-      if(options.objname.length === 0){
-        throw new Error(`Invalid Option: objname must be a non empty string`);
-      }
-      // Great, nothing to do
-    }else if(typeof options.objname === 'number');else {
-      throw new Error(`Invalid Option: objname must be a string or a buffer, got ${options.objname}`);
-    }
-    if(options.objname !== undefined){
-      if(typeof options.objname === 'number'){
-        if(options.columns !== false){
-          throw Error('Invalid Option: objname index cannot be combined with columns or be defined as a field');
-        }
-      }else { // A string or a buffer
-        if(options.columns === false){
-          throw Error('Invalid Option: objname field must be combined with columns or be defined as an index');
-        }
-      }
-    }
-    // Normalize option `on_record`
-    if(options.on_record === undefined || options.on_record === null){
-      options.on_record = undefined;
-    }else if(typeof options.on_record !== 'function'){
-      throw new CsvError('CSV_INVALID_OPTION_ON_RECORD', [
-        'Invalid option `on_record`:',
-        'expect a function,',
-        `got ${JSON.stringify(options.on_record)}`
-      ], options);
-    }
-    // Normalize option `quote`
-    if(options.quote === null || options.quote === false || options.quote === ''){
-      options.quote = null;
-    }else {
-      if(options.quote === undefined || options.quote === true){
-        options.quote = Buffer.from('"', options.encoding);
-      }else if(typeof options.quote === 'string'){
-        options.quote = Buffer.from(options.quote, options.encoding);
-      }
-      if(!Buffer.isBuffer(options.quote)){
-        throw new Error(`Invalid Option: quote must be a buffer or a string, got ${JSON.stringify(options.quote)}`);
-      }
-    }
-    // Normalize option `raw`
-    if(options.raw === undefined || options.raw === null || options.raw === false){
-      options.raw = false;
-    }else if(options.raw !== true){
-      throw new Error(`Invalid Option: raw must be true, got ${JSON.stringify(options.raw)}`);
-    }
-    // Normalize option `record_delimiter`
-    if(options.record_delimiter === undefined){
-      options.record_delimiter = [];
-    }else if(typeof options.record_delimiter === 'string' || Buffer.isBuffer(options.record_delimiter)){
-      if(options.record_delimiter.length === 0){
-        throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
-          'Invalid option `record_delimiter`:',
-          'value must be a non empty string or buffer,',
-          `got ${JSON.stringify(options.record_delimiter)}`
-        ], options);
-      }
-      options.record_delimiter = [options.record_delimiter];
-    }else if(!Array.isArray(options.record_delimiter)){
-      throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
-        'Invalid option `record_delimiter`:',
-        'value must be a string, a buffer or array of string|buffer,',
-        `got ${JSON.stringify(options.record_delimiter)}`
-      ], options);
-    }
-    options.record_delimiter = options.record_delimiter.map(function(rd, i){
-      if(typeof rd !== 'string' && ! Buffer.isBuffer(rd)){
-        throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
-          'Invalid option `record_delimiter`:',
-          'value must be a string, a buffer or array of string|buffer',
-          `at index ${i},`,
-          `got ${JSON.stringify(rd)}`
-        ], options);
-      }else if(rd.length === 0){
-        throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
-          'Invalid option `record_delimiter`:',
-          'value must be a non empty string or buffer',
-          `at index ${i},`,
-          `got ${JSON.stringify(rd)}`
-        ], options);
-      }
-      if(typeof rd === 'string'){
-        rd = Buffer.from(rd, options.encoding);
-      }
-      return rd;
-    });
-    // Normalize option `relax_column_count`
-    if(typeof options.relax_column_count === 'boolean');else if(options.relax_column_count === undefined || options.relax_column_count === null){
-      options.relax_column_count = false;
-    }else {
-      throw new Error(`Invalid Option: relax_column_count must be a boolean, got ${JSON.stringify(options.relax_column_count)}`);
-    }
-    if(typeof options.relax_column_count_less === 'boolean');else if(options.relax_column_count_less === undefined || options.relax_column_count_less === null){
-      options.relax_column_count_less = false;
-    }else {
-      throw new Error(`Invalid Option: relax_column_count_less must be a boolean, got ${JSON.stringify(options.relax_column_count_less)}`);
-    }
-    if(typeof options.relax_column_count_more === 'boolean');else if(options.relax_column_count_more === undefined || options.relax_column_count_more === null){
-      options.relax_column_count_more = false;
-    }else {
-      throw new Error(`Invalid Option: relax_column_count_more must be a boolean, got ${JSON.stringify(options.relax_column_count_more)}`);
-    }
-    // Normalize option `relax_quotes`
-    if(typeof options.relax_quotes === 'boolean');else if(options.relax_quotes === undefined || options.relax_quotes === null){
-      options.relax_quotes = false;
-    }else {
-      throw new Error(`Invalid Option: relax_quotes must be a boolean, got ${JSON.stringify(options.relax_quotes)}`);
-    }
-    // Normalize option `skip_empty_lines`
-    if(typeof options.skip_empty_lines === 'boolean');else if(options.skip_empty_lines === undefined || options.skip_empty_lines === null){
-      options.skip_empty_lines = false;
-    }else {
-      throw new Error(`Invalid Option: skip_empty_lines must be a boolean, got ${JSON.stringify(options.skip_empty_lines)}`);
-    }
-    // Normalize option `skip_records_with_empty_values`
-    if(typeof options.skip_records_with_empty_values === 'boolean');else if(options.skip_records_with_empty_values === undefined || options.skip_records_with_empty_values === null){
-      options.skip_records_with_empty_values = false;
-    }else {
-      throw new Error(`Invalid Option: skip_records_with_empty_values must be a boolean, got ${JSON.stringify(options.skip_records_with_empty_values)}`);
-    }
-    // Normalize option `skip_records_with_error`
-    if(typeof options.skip_records_with_error === 'boolean');else if(options.skip_records_with_error === undefined || options.skip_records_with_error === null){
-      options.skip_records_with_error = false;
-    }else {
-      throw new Error(`Invalid Option: skip_records_with_error must be a boolean, got ${JSON.stringify(options.skip_records_with_error)}`);
-    }
-    // Normalize option `rtrim`
-    if(options.rtrim === undefined || options.rtrim === null || options.rtrim === false){
-      options.rtrim = false;
-    }else if(options.rtrim !== true){
-      throw new Error(`Invalid Option: rtrim must be a boolean, got ${JSON.stringify(options.rtrim)}`);
-    }
-    // Normalize option `ltrim`
-    if(options.ltrim === undefined || options.ltrim === null || options.ltrim === false){
-      options.ltrim = false;
-    }else if(options.ltrim !== true){
-      throw new Error(`Invalid Option: ltrim must be a boolean, got ${JSON.stringify(options.ltrim)}`);
-    }
-    // Normalize option `trim`
-    if(options.trim === undefined || options.trim === null || options.trim === false){
-      options.trim = false;
-    }else if(options.trim !== true){
-      throw new Error(`Invalid Option: trim must be a boolean, got ${JSON.stringify(options.trim)}`);
-    }
-    // Normalize options `trim`, `ltrim` and `rtrim`
-    if(options.trim === true && opts.ltrim !== false){
-      options.ltrim = true;
-    }else if(options.ltrim !== true){
-      options.ltrim = false;
-    }
-    if(options.trim === true && opts.rtrim !== false){
-      options.rtrim = true;
-    }else if(options.rtrim !== true){
-      options.rtrim = false;
-    }
-    // Normalize option `to`
-    if(options.to === undefined || options.to === null){
-      options.to = -1;
-    }else {
-      if(typeof options.to === 'string' && /\d+/.test(options.to)){
-        options.to = parseInt(options.to);
-      }
-      if(Number.isInteger(options.to)){
-        if(options.to <= 0){
-          throw new Error(`Invalid Option: to must be a positive integer greater than 0, got ${JSON.stringify(opts.to)}`);
-        }
-      }else {
-        throw new Error(`Invalid Option: to must be an integer, got ${JSON.stringify(opts.to)}`);
-      }
-    }
-    // Normalize option `to_line`
-    if(options.to_line === undefined || options.to_line === null){
-      options.to_line = -1;
-    }else {
-      if(typeof options.to_line === 'string' && /\d+/.test(options.to_line)){
-        options.to_line = parseInt(options.to_line);
-      }
-      if(Number.isInteger(options.to_line)){
-        if(options.to_line <= 0){
-          throw new Error(`Invalid Option: to_line must be a positive integer greater than 0, got ${JSON.stringify(opts.to_line)}`);
-        }
-      }else {
-        throw new Error(`Invalid Option: to_line must be an integer, got ${JSON.stringify(opts.to_line)}`);
-      }
-    }
-    this.info = {
-      bytes: 0,
-      comment_lines: 0,
-      empty_lines: 0,
-      invalid_field_length: 0,
-      lines: 1,
-      records: 0
+    this.api = transform(opts);
+    this.api.options.on_skip = (err, chunk) => {
+      this.emit('skip', err, chunk);
     };
-    this.options = options;
-    this.state = {
-      bomSkipped: false,
-      bufBytesStart: 0,
-      castField: fnCastField,
-      commenting: false,
-      // Current error encountered by a record
-      error: undefined,
-      enabled: options.from_line === 1,
-      escaping: false,
-      escapeIsQuote: Buffer.isBuffer(options.escape) && Buffer.isBuffer(options.quote) && Buffer.compare(options.escape, options.quote) === 0,
-      // columns can be `false`, `true`, `Array`
-      expectedRecordLength: Array.isArray(options.columns) ? options.columns.length : undefined,
-      field: new ResizeableBuffer(20),
-      firstLineToHeaders: fnFirstLineToHeaders,
-      needMoreDataSize: Math.max(
-        // Skip if the remaining buffer smaller than comment
-        options.comment !== null ? options.comment.length : 0,
-        // Skip if the remaining buffer can be delimiter
-        ...options.delimiter.map((delimiter) => delimiter.length),
-        // Skip if the remaining buffer can be escape sequence
-        options.quote !== null ? options.quote.length : 0,
-      ),
-      previousBuf: undefined,
-      quoting: false,
-      stop: false,
-      rawBuffer: new ResizeableBuffer(100),
-      record: [],
-      recordHasError: false,
-      record_length: 0,
-      recordDelimiterMaxLength: options.record_delimiter.length === 0 ? 2 : Math.max(...options.record_delimiter.map((v) => v.length)),
-      trimChars: [Buffer.from(' ', options.encoding)[0], Buffer.from('\t', options.encoding)[0]],
-      wasQuoting: false,
-      wasRowDelimiter: false
-    };
+    // Backward compatibility
+    this.state = this.api.state;
+    this.options = this.api.options;
+    this.info = this.api.info;
   }
   // Implementation of `Transform._transform`
   _transform(buf, encoding, callback){
     if(this.state.stop === true){
       return;
     }
-    const err = this.__parse(buf, false);
+    const err = this.api.parse(buf, false, (record) => {
+      this.push.call(this, record);
+    }, () => {
+      this.push.call(this, null);
+    });
     if(err !== undefined){
       this.state.stop = true;
     }
@@ -60866,658 +61960,12 @@ class Parser extends stream.Transform {
     if(this.state.stop === true){
       return;
     }
-    const err = this.__parse(undefined, true);
+    const err = this.api.parse(undefined, true, (record) => {
+      this.push.call(this, record);
+    }, () => {
+      this.push.call(this, null);
+    });
     callback(err);
-  }
-  // Central parser implementation
-  __parse(nextBuf, end){
-    const {bom, comment, escape, from_line, ltrim, max_record_size, quote, raw, relax_quotes, rtrim, skip_empty_lines, to, to_line} = this.options;
-    let {record_delimiter} = this.options;
-    const {bomSkipped, previousBuf, rawBuffer, escapeIsQuote} = this.state;
-    let buf;
-    if(previousBuf === undefined){
-      if(nextBuf === undefined){
-        // Handle empty string
-        this.push(null);
-        return;
-      }else {
-        buf = nextBuf;
-      }
-    }else if(previousBuf !== undefined && nextBuf === undefined){
-      buf = previousBuf;
-    }else {
-      buf = Buffer.concat([previousBuf, nextBuf]);
-    }
-    // Handle UTF BOM
-    if(bomSkipped === false){
-      if(bom === false){
-        this.state.bomSkipped = true;
-      }else if(buf.length < 3){
-        // No enough data
-        if(end === false){
-          // Wait for more data
-          this.state.previousBuf = buf;
-          return;
-        }
-      }else {
-        for(const encoding in boms){
-          if(boms[encoding].compare(buf, 0, boms[encoding].length) === 0){
-            // Skip BOM
-            const bomLength = boms[encoding].length;
-            this.state.bufBytesStart += bomLength;
-            buf = buf.slice(bomLength);
-            // Renormalize original options with the new encoding
-            this.__normalizeOptions({...this.__originalOptions, encoding: encoding});
-            break;
-          }
-        }
-        this.state.bomSkipped = true;
-      }
-    }
-    const bufLen = buf.length;
-    let pos;
-    for(pos = 0; pos < bufLen; pos++){
-      // Ensure we get enough space to look ahead
-      // There should be a way to move this out of the loop
-      if(this.__needMoreData(pos, bufLen, end)){
-        break;
-      }
-      if(this.state.wasRowDelimiter === true){
-        this.info.lines++;
-        this.state.wasRowDelimiter = false;
-      }
-      if(to_line !== -1 && this.info.lines > to_line){
-        this.state.stop = true;
-        this.push(null);
-        return;
-      }
-      // Auto discovery of record_delimiter, unix, mac and windows supported
-      if(this.state.quoting === false && record_delimiter.length === 0){
-        const record_delimiterCount = this.__autoDiscoverRecordDelimiter(buf, pos);
-        if(record_delimiterCount){
-          record_delimiter = this.options.record_delimiter;
-        }
-      }
-      const chr = buf[pos];
-      if(raw === true){
-        rawBuffer.append(chr);
-      }
-      if((chr === cr || chr === nl) && this.state.wasRowDelimiter === false){
-        this.state.wasRowDelimiter = true;
-      }
-      // Previous char was a valid escape char
-      // treat the current char as a regular char
-      if(this.state.escaping === true){
-        this.state.escaping = false;
-      }else {
-        // Escape is only active inside quoted fields
-        // We are quoting, the char is an escape chr and there is a chr to escape
-        // if(escape !== null && this.state.quoting === true && chr === escape && pos + 1 < bufLen){
-        if(escape !== null && this.state.quoting === true && this.__isEscape(buf, pos, chr) && pos + escape.length < bufLen){
-          if(escapeIsQuote){
-            if(this.__isQuote(buf, pos+escape.length)){
-              this.state.escaping = true;
-              pos += escape.length - 1;
-              continue;
-            }
-          }else {
-            this.state.escaping = true;
-            pos += escape.length - 1;
-            continue;
-          }
-        }
-        // Not currently escaping and chr is a quote
-        // TODO: need to compare bytes instead of single char
-        if(this.state.commenting === false && this.__isQuote(buf, pos)){
-          if(this.state.quoting === true){
-            const nextChr = buf[pos+quote.length];
-            const isNextChrTrimable = rtrim && this.__isCharTrimable(nextChr);
-            const isNextChrComment = comment !== null && this.__compareBytes(comment, buf, pos+quote.length, nextChr);
-            const isNextChrDelimiter = this.__isDelimiter(buf, pos+quote.length, nextChr);
-            const isNextChrRecordDelimiter = record_delimiter.length === 0 ? this.__autoDiscoverRecordDelimiter(buf, pos+quote.length) : this.__isRecordDelimiter(nextChr, buf, pos+quote.length);
-            // Escape a quote
-            // Treat next char as a regular character
-            if(escape !== null && this.__isEscape(buf, pos, chr) && this.__isQuote(buf, pos + escape.length)){
-              pos += escape.length - 1;
-            }else if(!nextChr || isNextChrDelimiter || isNextChrRecordDelimiter || isNextChrComment || isNextChrTrimable){
-              this.state.quoting = false;
-              this.state.wasQuoting = true;
-              pos += quote.length - 1;
-              continue;
-            }else if(relax_quotes === false){
-              const err = this.__error(
-                new CsvError('CSV_INVALID_CLOSING_QUOTE', [
-                  'Invalid Closing Quote:',
-                  `got "${String.fromCharCode(nextChr)}"`,
-                  `at line ${this.info.lines}`,
-                  'instead of delimiter, record delimiter, trimable character',
-                  '(if activated) or comment',
-                ], this.options, this.__infoField())
-              );
-              if(err !== undefined) return err;
-            }else {
-              this.state.quoting = false;
-              this.state.wasQuoting = true;
-              this.state.field.prepend(quote);
-              pos += quote.length - 1;
-            }
-          }else {
-            if(this.state.field.length !== 0){
-              // In relax_quotes mode, treat opening quote preceded by chrs as regular
-              if(relax_quotes === false){
-                const err = this.__error(
-                  new CsvError('INVALID_OPENING_QUOTE', [
-                    'Invalid Opening Quote:',
-                    `a quote is found inside a field at line ${this.info.lines}`,
-                  ], this.options, this.__infoField(), {
-                    field: this.state.field,
-                  })
-                );
-                if(err !== undefined) return err;
-              }
-            }else {
-              this.state.quoting = true;
-              pos += quote.length - 1;
-              continue;
-            }
-          }
-        }
-        if(this.state.quoting === false){
-          const recordDelimiterLength = this.__isRecordDelimiter(chr, buf, pos);
-          if(recordDelimiterLength !== 0){
-            // Do not emit comments which take a full line
-            const skipCommentLine = this.state.commenting && (this.state.wasQuoting === false && this.state.record.length === 0 && this.state.field.length === 0);
-            if(skipCommentLine){
-              this.info.comment_lines++;
-              // Skip full comment line
-            }else {
-              // Activate records emition if above from_line
-              if(this.state.enabled === false && this.info.lines + (this.state.wasRowDelimiter === true ? 1: 0) >= from_line){
-                this.state.enabled = true;
-                this.__resetField();
-                this.__resetRecord();
-                pos += recordDelimiterLength - 1;
-                continue;
-              }
-              // Skip if line is empty and skip_empty_lines activated
-              if(skip_empty_lines === true && this.state.wasQuoting === false && this.state.record.length === 0 && this.state.field.length === 0){
-                this.info.empty_lines++;
-                pos += recordDelimiterLength - 1;
-                continue;
-              }
-              this.info.bytes = this.state.bufBytesStart + pos;
-              const errField = this.__onField();
-              if(errField !== undefined) return errField;
-              this.info.bytes = this.state.bufBytesStart + pos + recordDelimiterLength;
-              const errRecord = this.__onRecord();
-              if(errRecord !== undefined) return errRecord;
-              if(to !== -1 && this.info.records >= to){
-                this.state.stop = true;
-                this.push(null);
-                return;
-              }
-            }
-            this.state.commenting = false;
-            pos += recordDelimiterLength - 1;
-            continue;
-          }
-          if(this.state.commenting){
-            continue;
-          }
-          const commentCount = comment === null ? 0 : this.__compareBytes(comment, buf, pos, chr);
-          if(commentCount !== 0){
-            this.state.commenting = true;
-            continue;
-          }
-          const delimiterLength = this.__isDelimiter(buf, pos, chr);
-          if(delimiterLength !== 0){
-            this.info.bytes = this.state.bufBytesStart + pos;
-            const errField = this.__onField();
-            if(errField !== undefined) return errField;
-            pos += delimiterLength - 1;
-            continue;
-          }
-        }
-      }
-      if(this.state.commenting === false){
-        if(max_record_size !== 0 && this.state.record_length + this.state.field.length > max_record_size){
-          const err = this.__error(
-            new CsvError('CSV_MAX_RECORD_SIZE', [
-              'Max Record Size:',
-              'record exceed the maximum number of tolerated bytes',
-              `of ${max_record_size}`,
-              `at line ${this.info.lines}`,
-            ], this.options, this.__infoField())
-          );
-          if(err !== undefined) return err;
-        }
-      }
-      const lappend = ltrim === false || this.state.quoting === true || this.state.field.length !== 0 || !this.__isCharTrimable(chr);
-      // rtrim in non quoting is handle in __onField
-      const rappend = rtrim === false || this.state.wasQuoting === false;
-      if(lappend === true && rappend === true){
-        this.state.field.append(chr);
-      }else if(rtrim === true && !this.__isCharTrimable(chr)){
-        const err = this.__error(
-          new CsvError('CSV_NON_TRIMABLE_CHAR_AFTER_CLOSING_QUOTE', [
-            'Invalid Closing Quote:',
-            'found non trimable byte after quote',
-            `at line ${this.info.lines}`,
-          ], this.options, this.__infoField())
-        );
-        if(err !== undefined) return err;
-      }
-    }
-    if(end === true){
-      // Ensure we are not ending in a quoting state
-      if(this.state.quoting === true){
-        const err = this.__error(
-          new CsvError('CSV_QUOTE_NOT_CLOSED', [
-            'Quote Not Closed:',
-            `the parsing is finished with an opening quote at line ${this.info.lines}`,
-          ], this.options, this.__infoField())
-        );
-        if(err !== undefined) return err;
-      }else {
-        // Skip last line if it has no characters
-        if(this.state.wasQuoting === true || this.state.record.length !== 0 || this.state.field.length !== 0){
-          this.info.bytes = this.state.bufBytesStart + pos;
-          const errField = this.__onField();
-          if(errField !== undefined) return errField;
-          const errRecord = this.__onRecord();
-          if(errRecord !== undefined) return errRecord;
-        }else if(this.state.wasRowDelimiter === true){
-          this.info.empty_lines++;
-        }else if(this.state.commenting === true){
-          this.info.comment_lines++;
-        }
-      }
-    }else {
-      this.state.bufBytesStart += pos;
-      this.state.previousBuf = buf.slice(pos);
-    }
-    if(this.state.wasRowDelimiter === true){
-      this.info.lines++;
-      this.state.wasRowDelimiter = false;
-    }
-  }
-  __onRecord(){
-    const {columns, group_columns_by_name, encoding, info, from, relax_column_count, relax_column_count_less, relax_column_count_more, raw, skip_records_with_empty_values} = this.options;
-    const {enabled, record} = this.state;
-    if(enabled === false){
-      return this.__resetRecord();
-    }
-    // Convert the first line into column names
-    const recordLength = record.length;
-    if(columns === true){
-      if(skip_records_with_empty_values === true && isRecordEmpty(record)){
-        this.__resetRecord();
-        return;
-      }
-      return this.__firstLineToColumns(record);
-    }
-    if(columns === false && this.info.records === 0){
-      this.state.expectedRecordLength = recordLength;
-    }
-    if(recordLength !== this.state.expectedRecordLength){
-      const err = columns === false ?
-        new CsvError('CSV_RECORD_INCONSISTENT_FIELDS_LENGTH', [
-          'Invalid Record Length:',
-          `expect ${this.state.expectedRecordLength},`,
-          `got ${recordLength} on line ${this.info.lines}`,
-        ], this.options, this.__infoField(), {
-          record: record,
-        })
-        :
-        new CsvError('CSV_RECORD_INCONSISTENT_COLUMNS', [
-          'Invalid Record Length:',
-          `columns length is ${columns.length},`, // rename columns
-          `got ${recordLength} on line ${this.info.lines}`,
-        ], this.options, this.__infoField(), {
-          record: record,
-        });
-      if(relax_column_count === true ||
-        (relax_column_count_less === true && recordLength < this.state.expectedRecordLength) ||
-        (relax_column_count_more === true && recordLength > this.state.expectedRecordLength)){
-        this.info.invalid_field_length++;
-        this.state.error = err;
-      // Error is undefined with skip_records_with_error
-      }else {
-        const finalErr = this.__error(err);
-        if(finalErr) return finalErr;
-      }
-    }
-    if(skip_records_with_empty_values === true && isRecordEmpty(record)){
-      this.__resetRecord();
-      return;
-    }
-    if(this.state.recordHasError === true){
-      this.__resetRecord();
-      this.state.recordHasError = false;
-      return;
-    }
-    this.info.records++;
-    if(from === 1 || this.info.records >= from){
-      const {objname} = this.options;
-      // With columns, records are object
-      if(columns !== false){
-        const obj = {};
-        // Transform record array to an object
-        for(let i = 0, l = record.length; i < l; i++){
-          if(columns[i] === undefined || columns[i].disabled) continue;
-          // Turn duplicate columns into an array
-          if (group_columns_by_name === true && obj[columns[i].name] !== undefined) {
-            if (Array.isArray(obj[columns[i].name])) {
-              obj[columns[i].name] = obj[columns[i].name].concat(record[i]);
-            } else {
-              obj[columns[i].name] = [obj[columns[i].name], record[i]];
-            }
-          } else {
-            obj[columns[i].name] = record[i];
-          }
-        }
-        // Without objname (default)
-        if(raw === true || info === true){
-          const extRecord = Object.assign(
-            {record: obj},
-            (raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {}),
-            (info === true ? {info: this.__infoRecord()}: {})
-          );
-          const err = this.__push(
-            objname === undefined ? extRecord : [obj[objname], extRecord]
-          );
-          if(err){
-            return err;
-          }
-        }else {
-          const err = this.__push(
-            objname === undefined ? obj : [obj[objname], obj]
-          );
-          if(err){
-            return err;
-          }
-        }
-      // Without columns, records are array
-      }else {
-        if(raw === true || info === true){
-          const extRecord = Object.assign(
-            {record: record},
-            raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {},
-            info === true ? {info: this.__infoRecord()}: {}
-          );
-          const err = this.__push(
-            objname === undefined ? extRecord : [record[objname], extRecord]
-          );
-          if(err){
-            return err;
-          }
-        }else {
-          const err = this.__push(
-            objname === undefined ? record : [record[objname], record]
-          );
-          if(err){
-            return err;
-          }
-        }
-      }
-    }
-    this.__resetRecord();
-  }
-  __firstLineToColumns(record){
-    const {firstLineToHeaders} = this.state;
-    try{
-      const headers = firstLineToHeaders === undefined ? record : firstLineToHeaders.call(null, record);
-      if(!Array.isArray(headers)){
-        return this.__error(
-          new CsvError('CSV_INVALID_COLUMN_MAPPING', [
-            'Invalid Column Mapping:',
-            'expect an array from column function,',
-            `got ${JSON.stringify(headers)}`
-          ], this.options, this.__infoField(), {
-            headers: headers,
-          })
-        );
-      }
-      const normalizedHeaders = normalizeColumnsArray(headers);
-      this.state.expectedRecordLength = normalizedHeaders.length;
-      this.options.columns = normalizedHeaders;
-      this.__resetRecord();
-      return;
-    }catch(err){
-      return err;
-    }
-  }
-  __resetRecord(){
-    if(this.options.raw === true){
-      this.state.rawBuffer.reset();
-    }
-    this.state.error = undefined;
-    this.state.record = [];
-    this.state.record_length = 0;
-  }
-  __onField(){
-    const {cast, encoding, rtrim, max_record_size} = this.options;
-    const {enabled, wasQuoting} = this.state;
-    // Short circuit for the from_line options
-    if(enabled === false){
-      return this.__resetField();
-    }
-    let field = this.state.field.toString(encoding);
-    if(rtrim === true && wasQuoting === false){
-      field = field.trimRight();
-    }
-    if(cast === true){
-      const [err, f] = this.__cast(field);
-      if(err !== undefined) return err;
-      field = f;
-    }
-    this.state.record.push(field);
-    // Increment record length if record size must not exceed a limit
-    if(max_record_size !== 0 && typeof field === 'string'){
-      this.state.record_length += field.length;
-    }
-    this.__resetField();
-  }
-  __resetField(){
-    this.state.field.reset();
-    this.state.wasQuoting = false;
-  }
-  __push(record){
-    const {on_record} = this.options;
-    if(on_record !== undefined){
-      const info = this.__infoRecord();
-      try{
-        record = on_record.call(null, record, info);
-      }catch(err){
-        return err;
-      }
-      if(record === undefined || record === null){ return; }
-    }
-    this.push(record);
-  }
-  // Return a tuple with the error and the casted value
-  __cast(field){
-    const {columns, relax_column_count} = this.options;
-    const isColumns = Array.isArray(columns);
-    // Dont loose time calling cast
-    // because the final record is an object
-    // and this field can't be associated to a key present in columns
-    if(isColumns === true && relax_column_count && this.options.columns.length <= this.state.record.length){
-      return [undefined, undefined];
-    }
-    if(this.state.castField !== null){
-      try{
-        const info = this.__infoField();
-        return [undefined, this.state.castField.call(null, field, info)];
-      }catch(err){
-        return [err];
-      }
-    }
-    if(this.__isFloat(field)){
-      return [undefined, parseFloat(field)];
-    }else if(this.options.cast_date !== false){
-      const info = this.__infoField();
-      return [undefined, this.options.cast_date.call(null, field, info)];
-    }
-    return [undefined, field];
-  }
-  // Helper to test if a character is a space or a line delimiter
-  __isCharTrimable(chr){
-    return chr === space || chr === tab || chr === cr || chr === nl || chr === np;
-  }
-  // Keep it in case we implement the `cast_int` option
-  // __isInt(value){
-  //   // return Number.isInteger(parseInt(value))
-  //   // return !isNaN( parseInt( obj ) );
-  //   return /^(\-|\+)?[1-9][0-9]*$/.test(value)
-  // }
-  __isFloat(value){
-    return (value - parseFloat(value) + 1) >= 0; // Borrowed from jquery
-  }
-  __compareBytes(sourceBuf, targetBuf, targetPos, firstByte){
-    if(sourceBuf[0] !== firstByte) return 0;
-    const sourceLength = sourceBuf.length;
-    for(let i = 1; i < sourceLength; i++){
-      if(sourceBuf[i] !== targetBuf[targetPos+i]) return 0;
-    }
-    return sourceLength;
-  }
-  __needMoreData(i, bufLen, end){
-    if(end) return false;
-    const {quote} = this.options;
-    const {quoting, needMoreDataSize, recordDelimiterMaxLength} = this.state;
-    const numOfCharLeft = bufLen - i - 1;
-    const requiredLength = Math.max(
-      needMoreDataSize,
-      // Skip if the remaining buffer smaller than record delimiter
-      recordDelimiterMaxLength,
-      // Skip if the remaining buffer can be record delimiter following the closing quote
-      // 1 is for quote.length
-      quoting ? (quote.length + recordDelimiterMaxLength) : 0,
-    );
-    return numOfCharLeft < requiredLength;
-  }
-  __isDelimiter(buf, pos, chr){
-    const {delimiter, ignore_last_delimiters} = this.options;
-    if(ignore_last_delimiters === true && this.state.record.length === this.options.columns.length - 1){
-      return 0;
-    }else if(ignore_last_delimiters !== false && typeof ignore_last_delimiters === 'number' && this.state.record.length === ignore_last_delimiters - 1){
-      return 0;
-    }
-    loop1: for(let i = 0; i < delimiter.length; i++){
-      const del = delimiter[i];
-      if(del[0] === chr){
-        for(let j = 1; j < del.length; j++){
-          if(del[j] !== buf[pos+j]) continue loop1;
-        }
-        return del.length;
-      }
-    }
-    return 0;
-  }
-  __isRecordDelimiter(chr, buf, pos){
-    const {record_delimiter} = this.options;
-    const recordDelimiterLength = record_delimiter.length;
-    loop1: for(let i = 0; i < recordDelimiterLength; i++){
-      const rd = record_delimiter[i];
-      const rdLength = rd.length;
-      if(rd[0] !== chr){
-        continue;
-      }
-      for(let j = 1; j < rdLength; j++){
-        if(rd[j] !== buf[pos+j]){
-          continue loop1;
-        }
-      }
-      return rd.length;
-    }
-    return 0;
-  }
-  __isEscape(buf, pos, chr){
-    const {escape} = this.options;
-    if(escape === null) return false;
-    const l = escape.length;
-    if(escape[0] === chr){
-      for(let i = 0; i < l; i++){
-        if(escape[i] !== buf[pos+i]){
-          return false;
-        }
-      }
-      return true;
-    }
-    return false;
-  }
-  __isQuote(buf, pos){
-    const {quote} = this.options;
-    if(quote === null) return false;
-    const l = quote.length;
-    for(let i = 0; i < l; i++){
-      if(quote[i] !== buf[pos+i]){
-        return false;
-      }
-    }
-    return true;
-  }
-  __autoDiscoverRecordDelimiter(buf, pos){
-    const {encoding} = this.options;
-    const chr = buf[pos];
-    if(chr === cr){
-      if(buf[pos+1] === nl){
-        this.options.record_delimiter.push(Buffer.from('\r\n', encoding));
-        this.state.recordDelimiterMaxLength = 2;
-        return 2;
-      }else {
-        this.options.record_delimiter.push(Buffer.from('\r', encoding));
-        this.state.recordDelimiterMaxLength = 1;
-        return 1;
-      }
-    }else if(chr === nl){
-      this.options.record_delimiter.push(Buffer.from('\n', encoding));
-      this.state.recordDelimiterMaxLength = 1;
-      return 1;
-    }
-    return 0;
-  }
-  __error(msg){
-    const {encoding, raw, skip_records_with_error} = this.options;
-    const err = typeof msg === 'string' ? new Error(msg) : msg;
-    if(skip_records_with_error){
-      this.state.recordHasError = true;
-      this.emit('skip', err, raw ? this.state.rawBuffer.toString(encoding) : undefined);
-      return undefined;
-    }else {
-      return err;
-    }
-  }
-  __infoDataSet(){
-    return {
-      ...this.info,
-      columns: this.options.columns
-    };
-  }
-  __infoRecord(){
-    const {columns, raw, encoding} = this.options;
-    return {
-      ...this.__infoDataSet(),
-      error: this.state.error,
-      header: columns === true,
-      index: this.state.record.length,
-      raw: raw ? this.state.rawBuffer.toString(encoding) : undefined
-    };
-  }
-  __infoField(){
-    const {columns} = this.options;
-    const isColumns = Array.isArray(columns);
-    return {
-      ...this.__infoRecord(),
-      column: isColumns === true ?
-        (columns.length > this.state.record.length ?
-          columns[this.state.record.length].name :
-          null
-        ) :
-        this.state.record.length,
-      quoting: this.state.wasQuoting,
-    };
   }
 }
 
@@ -61528,7 +61976,7 @@ const parse = function(){
     const type = typeof argument;
     if(data === undefined && (typeof argument === 'string' || Buffer.isBuffer(argument))){
       data = argument;
-    }else if(options === undefined && isObject(argument)){
+    }else if(options === undefined && is_object(argument)){
       options = argument;
     }else if(callback === undefined && type === 'function'){
       callback = argument;
@@ -61553,10 +62001,10 @@ const parse = function(){
       }
     });
     parser.on('error', function(err){
-      callback(err, undefined, parser.__infoDataSet());
+      callback(err, undefined, parser.api.__infoDataSet());
     });
     parser.on('end', function(){
-      callback(undefined, records, parser.__infoDataSet());
+      callback(undefined, records, parser.api.__infoDataSet());
     });
   }
   if(data !== undefined){
@@ -61718,6 +62166,10 @@ function escape(html, encode) {
   return html;
 }
 var unescapeTest = /&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/ig;
+/**
+ * @param {string} html
+ */
+
 function unescape(html) {
   // explicitly match decimal, hex, and named HTML entities
   return html.replace(unescapeTest, function (_, n) {
@@ -61732,8 +62184,13 @@ function unescape(html) {
   });
 }
 var caret = /(^|[^\[])\^/g;
+/**
+ * @param {string | RegExp} regex
+ * @param {string} opt
+ */
+
 function edit(regex, opt) {
-  regex = regex.source || regex;
+  regex = typeof regex === 'string' ? regex : regex.source;
   opt = opt || '';
   var obj = {
     replace: function replace(name, val) {
@@ -61750,6 +62207,12 @@ function edit(regex, opt) {
 }
 var nonWordAndColonTest = /[^\w:]/g;
 var originIndependentUrl = /^$|^[a-z][a-z0-9+.-]*:|^[?#]/i;
+/**
+ * @param {boolean} sanitize
+ * @param {string} base
+ * @param {string} href
+ */
+
 function cleanUrl(sanitize, base, href) {
   if (sanitize) {
     var prot;
@@ -61781,6 +62244,11 @@ var baseUrls = {};
 var justDomain = /^[^:]+:\/*[^/]*$/;
 var protocol = /^([^:]+:)[\s\S]*$/;
 var domain = /^([^:]+:\/*[^/]*)[\s\S]*$/;
+/**
+ * @param {string} base
+ * @param {string} href
+ */
+
 function resolveUrl(base, href) {
   if (!baseUrls[' ' + base]) {
     // we can ignore everything in base after the last slash of its path component,
@@ -61877,9 +62345,15 @@ function splitCells(tableRow, count) {
   }
 
   return cells;
-} // Remove trailing 'c's. Equivalent to str.replace(/c*$/, '').
-// /c*$/ is vulnerable to REDOS.
-// invert: Remove suffix of non-c chars instead. Default falsey.
+}
+/**
+ * Remove trailing 'c's. Equivalent to str.replace(/c*$/, '').
+ * /c*$/ is vulnerable to REDOS.
+ *
+ * @param {string} str
+ * @param {string} c
+ * @param {boolean} invert Remove suffix of non-c chars instead. Default falsey.
+ */
 
 function rtrim(str, c, invert) {
   var l = str.length;
@@ -61903,7 +62377,7 @@ function rtrim(str, c, invert) {
     }
   }
 
-  return str.substr(0, l - suffLen);
+  return str.slice(0, l - suffLen);
 }
 function findClosingBracket(str, b) {
   if (str.indexOf(b[1]) === -1) {
@@ -61935,6 +62409,11 @@ function checkSanitizeDeprecation(opt) {
     console.warn('marked(): sanitize and sanitizer parameters are deprecated since version 0.7.0, should not be used and will be removed in the future. Read more here: https://marked.js.org/#/USING_ADVANCED.md#options');
   }
 } // copied from https://stackoverflow.com/a/5450113/806777
+
+/**
+ * @param {string} pattern
+ * @param {number} count
+ */
 
 function repeatString(pattern, count) {
   if (count < 1) {
@@ -61972,15 +62451,15 @@ function outputLink(cap, link, raw, lexer) {
     };
     lexer.state.inLink = false;
     return token;
-  } else {
-    return {
-      type: 'image',
-      raw: raw,
-      href: href,
-      title: title,
-      text: escape(text)
-    };
   }
+
+  return {
+    type: 'image',
+    raw: raw,
+    href: href,
+    title: title,
+    text: escape(text)
+  };
 }
 
 function indentCodeCompensation(raw, text) {
@@ -62103,7 +62582,7 @@ var Tokenizer = /*#__PURE__*/function () {
     var cap = this.rules.block.blockquote.exec(src);
 
     if (cap) {
-      var text = cap[0].replace(/^ *> ?/gm, '');
+      var text = cap[0].replace(/^ *>[ \t]?/gm, '');
       return {
         type: 'blockquote',
         raw: cap[0],
@@ -62135,7 +62614,7 @@ var Tokenizer = /*#__PURE__*/function () {
       } // Get next list item
 
 
-      var itemRegex = new RegExp("^( {0,3}" + bull + ")((?: [^\\n]*)?(?:\\n|$))"); // Check if current bullet point can start a new List Item
+      var itemRegex = new RegExp("^( {0,3}" + bull + ")((?:[\t ][^\\n]*)?(?:\\n|$))"); // Check if current bullet point can start a new List Item
 
       while (src) {
         endEarly = false;
@@ -62176,7 +62655,9 @@ var Tokenizer = /*#__PURE__*/function () {
         }
 
         if (!endEarly) {
-          var nextBulletRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}(?:[*+-]|\\d{1,9}[.)])"); // Check if following lines should be included in List Item
+          var nextBulletRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}(?:[*+-]|\\d{1,9}[.)])((?: [^\\n]*)?(?:\\n|$))");
+          var hrRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}((?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})(?:\\n+|$)");
+          var fencesBeginRegex = new RegExp("^( {0," + Math.min(3, indent - 1) + "})(```|~~~)"); // Check if following lines should be included in List Item
 
           while (src) {
             rawLine = src.split('\n', 1)[0];
@@ -62184,10 +62665,25 @@ var Tokenizer = /*#__PURE__*/function () {
 
             if (this.options.pedantic) {
               line = line.replace(/^ {1,4}(?=( {4})*[^ ])/g, '  ');
+            } // End list item if found code fences
+
+
+            if (fencesBeginRegex.test(line)) {
+              break;
+            } // End list item if found start of new heading
+
+
+            if (this.rules.block.heading.test(line)) {
+              break;
             } // End list item if found start of new bullet
 
 
             if (nextBulletRegex.test(line)) {
+              break;
+            } // Horizontal rule found
+
+
+            if (hrRegex.test(src)) {
               break;
             }
 
@@ -62370,7 +62866,7 @@ var Tokenizer = /*#__PURE__*/function () {
 
         for (j = 0; j < l; j++) {
           item.header[j].tokens = [];
-          this.lexer.inlineTokens(item.header[j].text, item.header[j].tokens);
+          this.lexer.inline(item.header[j].text, item.header[j].tokens);
         } // cell child tokens
 
 
@@ -62381,7 +62877,7 @@ var Tokenizer = /*#__PURE__*/function () {
 
           for (k = 0; k < row.length; k++) {
             row[k].tokens = [];
-            this.lexer.inlineTokens(row[k].text, row[k].tokens);
+            this.lexer.inline(row[k].text, row[k].tokens);
           }
         }
 
@@ -62772,10 +63268,10 @@ var block = {
   newline: /^(?: *(?:\n|$))+/,
   code: /^( {4}[^\n]+(?:\n(?: *(?:\n|$))*)?)+/,
   fences: /^ {0,3}(`{3,}(?=[^`\n]*\n)|~{3,})([^\n]*)\n(?:|([\s\S]*?)\n)(?: {0,3}\1[~`]* *(?=\n|$)|$)/,
-  hr: /^ {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\* *){3,})(?:\n+|$)/,
+  hr: /^ {0,3}((?:-[\t ]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})(?:\n+|$)/,
   heading: /^ {0,3}(#{1,6})(?=\s|$)(.*)(?:\n+|$)/,
   blockquote: /^( {0,3}> ?(paragraph|[^\n]*)(?:\n|$))+/,
-  list: /^( {0,3}bull)( [^\n]+?)?(?:\n|$)/,
+  list: /^( {0,3}bull)([ \t][^\n]+?)?(?:\n|$)/,
   html: '^ {0,3}(?:' // optional indentation
   + '<(script|pre|style|textarea)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)' // (1)
   + '|comment[^\\n]*(\\n+|$)' // (2)
@@ -62865,9 +63361,9 @@ var inline = {
   emStrong: {
     lDelim: /^(?:\*+(?:([punct_])|[^\s*]))|^_+(?:([punct*])|([^\s_]))/,
     //        (1) and (2) can only be a Right Delimiter. (3) and (4) can only be Left.  (5) and (6) can be either Left or Right.
-    //        () Skip orphan delim inside strong    (1) #***                (2) a***#, a***                   (3) #***a, ***a                 (4) ***#              (5) #***#                 (6) a***a
-    rDelimAst: /^[^_*]*?\_\_[^_*]*?\*[^_*]*?(?=\_\_)|[punct_](\*+)(?=[\s]|$)|[^punct*_\s](\*+)(?=[punct_\s]|$)|[punct_\s](\*+)(?=[^punct*_\s])|[\s](\*+)(?=[punct_])|[punct_](\*+)(?=[punct_])|[^punct*_\s](\*+)(?=[^punct*_\s])/,
-    rDelimUnd: /^[^_*]*?\*\*[^_*]*?\_[^_*]*?(?=\*\*)|[punct*](\_+)(?=[\s]|$)|[^punct*_\s](\_+)(?=[punct*\s]|$)|[punct*\s](\_+)(?=[^punct*_\s])|[\s](\_+)(?=[punct*])|[punct*](\_+)(?=[punct*])/ // ^- Not allowed for _
+    //          () Skip orphan inside strong  () Consume to delim (1) #***                (2) a***#, a***                   (3) #***a, ***a                 (4) ***#              (5) #***#                 (6) a***a
+    rDelimAst: /^[^_*]*?\_\_[^_*]*?\*[^_*]*?(?=\_\_)|[^*]+(?=[^*])|[punct_](\*+)(?=[\s]|$)|[^punct*_\s](\*+)(?=[punct_\s]|$)|[punct_\s](\*+)(?=[^punct*_\s])|[\s](\*+)(?=[punct_])|[punct_](\*+)(?=[punct_])|[^punct*_\s](\*+)(?=[^punct*_\s])/,
+    rDelimUnd: /^[^_*]*?\*\*[^_*]*?\_[^_*]*?(?=\*\*)|[^_]+(?=[^_])|[punct*](\_+)(?=[\s]|$)|[^punct*_\s](\_+)(?=[punct*\s]|$)|[punct*\s](\_+)(?=[^punct*_\s])|[\s](\_+)(?=[punct*])|[punct*](\_+)(?=[punct*])/ // ^- Not allowed for _
 
   },
   code: /^(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/,
@@ -62949,6 +63445,7 @@ inline.breaks = merge({}, inline.gfm, {
 
 /**
  * smartypants text replacement
+ * @param {string} text
  */
 
 function smartypants(text) {
@@ -62963,6 +63460,7 @@ function smartypants(text) {
 }
 /**
  * mangle email addresses
+ * @param {string} text
  */
 
 
@@ -63053,7 +63551,7 @@ var Lexer = /*#__PURE__*/function () {
   var _proto = Lexer.prototype;
 
   _proto.lex = function lex(src) {
-    src = src.replace(/\r\n|\r/g, '\n').replace(/\t/g, '    ');
+    src = src.replace(/\r\n|\r/g, '\n');
     this.blockTokens(src, this.tokens);
     var next;
 
@@ -63076,7 +63574,11 @@ var Lexer = /*#__PURE__*/function () {
     }
 
     if (this.options.pedantic) {
-      src = src.replace(/^ +$/gm, '');
+      src = src.replace(/\t/g, '    ').replace(/^ +$/gm, '');
+    } else {
+      src = src.replace(/^( *)(\t+)/gm, function (_, leading, tabs) {
+        return leading + '    '.repeat(tabs.length);
+      });
     }
 
     var token, lastToken, cutSrc, lastParagraphClipped;
@@ -63536,23 +64038,35 @@ var Renderer = /*#__PURE__*/function () {
     }
 
     return '<pre><code class="' + this.options.langPrefix + escape(lang, true) + '">' + (escaped ? _code : escape(_code, true)) + '</code></pre>\n';
-  };
+  }
+  /**
+   * @param {string} quote
+   */
+  ;
 
   _proto.blockquote = function blockquote(quote) {
-    return '<blockquote>\n' + quote + '</blockquote>\n';
+    return "<blockquote>\n" + quote + "</blockquote>\n";
   };
 
   _proto.html = function html(_html) {
     return _html;
-  };
+  }
+  /**
+   * @param {string} text
+   * @param {string} level
+   * @param {string} raw
+   * @param {any} slugger
+   */
+  ;
 
   _proto.heading = function heading(text, level, raw, slugger) {
     if (this.options.headerIds) {
-      return '<h' + level + ' id="' + this.options.headerPrefix + slugger.slug(raw) + '">' + text + '</h' + level + '>\n';
+      var id = this.options.headerPrefix + slugger.slug(raw);
+      return "<h" + level + " id=\"" + id + "\">" + text + "</h" + level + ">\n";
     } // ignore IDs
 
 
-    return '<h' + level + '>' + text + '</h' + level + '>\n';
+    return "<h" + level + ">" + text + "</h" + level + ">\n";
   };
 
   _proto.hr = function hr() {
@@ -63563,55 +64077,94 @@ var Renderer = /*#__PURE__*/function () {
     var type = ordered ? 'ol' : 'ul',
         startatt = ordered && start !== 1 ? ' start="' + start + '"' : '';
     return '<' + type + startatt + '>\n' + body + '</' + type + '>\n';
-  };
+  }
+  /**
+   * @param {string} text
+   */
+  ;
 
   _proto.listitem = function listitem(text) {
-    return '<li>' + text + '</li>\n';
+    return "<li>" + text + "</li>\n";
   };
 
   _proto.checkbox = function checkbox(checked) {
     return '<input ' + (checked ? 'checked="" ' : '') + 'disabled="" type="checkbox"' + (this.options.xhtml ? ' /' : '') + '> ';
-  };
+  }
+  /**
+   * @param {string} text
+   */
+  ;
 
   _proto.paragraph = function paragraph(text) {
-    return '<p>' + text + '</p>\n';
-  };
+    return "<p>" + text + "</p>\n";
+  }
+  /**
+   * @param {string} header
+   * @param {string} body
+   */
+  ;
 
   _proto.table = function table(header, body) {
-    if (body) body = '<tbody>' + body + '</tbody>';
+    if (body) body = "<tbody>" + body + "</tbody>";
     return '<table>\n' + '<thead>\n' + header + '</thead>\n' + body + '</table>\n';
-  };
+  }
+  /**
+   * @param {string} content
+   */
+  ;
 
   _proto.tablerow = function tablerow(content) {
-    return '<tr>\n' + content + '</tr>\n';
+    return "<tr>\n" + content + "</tr>\n";
   };
 
   _proto.tablecell = function tablecell(content, flags) {
     var type = flags.header ? 'th' : 'td';
-    var tag = flags.align ? '<' + type + ' align="' + flags.align + '">' : '<' + type + '>';
-    return tag + content + '</' + type + '>\n';
-  } // span level renderer
+    var tag = flags.align ? "<" + type + " align=\"" + flags.align + "\">" : "<" + type + ">";
+    return tag + content + ("</" + type + ">\n");
+  }
+  /**
+   * span level renderer
+   * @param {string} text
+   */
   ;
 
   _proto.strong = function strong(text) {
-    return '<strong>' + text + '</strong>';
-  };
+    return "<strong>" + text + "</strong>";
+  }
+  /**
+   * @param {string} text
+   */
+  ;
 
   _proto.em = function em(text) {
-    return '<em>' + text + '</em>';
-  };
+    return "<em>" + text + "</em>";
+  }
+  /**
+   * @param {string} text
+   */
+  ;
 
   _proto.codespan = function codespan(text) {
-    return '<code>' + text + '</code>';
+    return "<code>" + text + "</code>";
   };
 
   _proto.br = function br() {
     return this.options.xhtml ? '<br/>' : '<br>';
-  };
+  }
+  /**
+   * @param {string} text
+   */
+  ;
 
   _proto.del = function del(text) {
-    return '<del>' + text + '</del>';
-  };
+    return "<del>" + text + "</del>";
+  }
+  /**
+   * @param {string} href
+   * @param {string} title
+   * @param {string} text
+   */
+  ;
 
   _proto.link = function link(href, title, text) {
     href = cleanUrl(this.options.sanitize, this.options.baseUrl, href);
@@ -63628,7 +64181,13 @@ var Renderer = /*#__PURE__*/function () {
 
     out += '>' + text + '</a>';
     return out;
-  };
+  }
+  /**
+   * @param {string} href
+   * @param {string} title
+   * @param {string} text
+   */
+  ;
 
   _proto.image = function image(href, title, text) {
     href = cleanUrl(this.options.sanitize, this.options.baseUrl, href);
@@ -63637,10 +64196,10 @@ var Renderer = /*#__PURE__*/function () {
       return text;
     }
 
-    var out = '<img src="' + href + '" alt="' + text + '"';
+    var out = "<img src=\"" + href + "\" alt=\"" + text + "\"";
 
     if (title) {
-      out += ' title="' + title + '"';
+      out += " title=\"" + title + "\"";
     }
 
     out += this.options.xhtml ? '/>' : '>';
@@ -63710,6 +64269,10 @@ var Slugger = /*#__PURE__*/function () {
   function Slugger() {
     this.seen = {};
   }
+  /**
+   * @param {string} value
+   */
+
 
   var _proto = Slugger.prototype;
 
@@ -63720,6 +64283,8 @@ var Slugger = /*#__PURE__*/function () {
   }
   /**
    * Finds the next safe (unique) slug to use
+   * @param {string} originalSlug
+   * @param {boolean} isDryRun
    */
   ;
 
@@ -63745,8 +64310,9 @@ var Slugger = /*#__PURE__*/function () {
   }
   /**
    * Convert string to unique id
-   * @param {object} options
-   * @param {boolean} options.dryrun Generates the next unique slug without updating the internal accumulator.
+   * @param {object} [options]
+   * @param {boolean} [options.dryrun] Generates the next unique slug without
+   * updating the internal accumulator.
    */
   ;
 
@@ -64443,6 +65009,7 @@ marked.walkTokens = function (tokens, callback) {
 };
 /**
  * Parse Inline
+ * @param {string} src
  */
 
 
