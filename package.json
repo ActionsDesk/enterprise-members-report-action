@@ -56,7 +56,7 @@
   },
   "devDependencies": {
     "@github/prettier-config": "^0.0.4",
-    "@octokit/types": "^6.34.0",
+    "@octokit/types": "^6.35.0",
     "@types/jest": "^27.4.1",
     "@types/marked": "^4.0.3",
     "@types/node": "^18.0.0",
