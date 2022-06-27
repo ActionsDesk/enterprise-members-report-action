@@ -41,10 +41,11 @@ export async function getOrgsForEnterprise(enterprise: string, octokit: Octokit)
 export async function getPendingInvitesFromOrgs(orgs: string[], octokit: Octokit): Promise<PendingInvite[]> {
   const pendingInvites: PendingInvite[] = []
   for (const org of orgs) {
-    const response = await octokit.paginate(octokit.rest.orgs.listPendingInvitations, {
+    // https://docs.github.com/en/rest/orgs/members#list-pending-organization-invitations
+    const invites = await octokit.paginate('GET /orgs/{org}/invitations', {
       org
     })
-    for (const invite of response) {
+    for (const invite of invites) {
       pendingInvites.push({
         org,
         login: invite.login || '',

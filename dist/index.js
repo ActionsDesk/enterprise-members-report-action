@@ -2648,7 +2648,7 @@ exports.withCustomRequest = withCustomRequest;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-const VERSION = "2.18.0";
+const VERSION = "2.19.0";
 
 function ownKeys(object, enumerableOnly) {
   var keys = Object.keys(object);
@@ -3852,7 +3852,7 @@ const Endpoints = {
   }
 };
 
-const VERSION = "5.14.0";
+const VERSION = "5.15.0";
 
 function endpointsToMethods(octokit, endpointsMap) {
   const newMethods = {};
@@ -59975,10 +59975,11 @@ function getPendingInvitesFromOrgs(orgs, octokit) {
     return __awaiter(this, void 0, void 0, function* () {
         const pendingInvites = [];
         for (const org of orgs) {
-            const response = yield octokit.paginate(octokit.rest.orgs.listPendingInvitations, {
+            // https://docs.github.com/en/rest/orgs/members#list-pending-organization-invitations
+            const invites = yield octokit.paginate('GET /orgs/{org}/invitations', {
                 org
             });
-            for (const invite of response) {
+            for (const invite of invites) {
                 pendingInvites.push({
                     org,
                     login: invite.login || '',
