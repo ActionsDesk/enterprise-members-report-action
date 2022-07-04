@@ -50,7 +50,7 @@
     "@actions/core": "^1.9.0",
     "@actions/github": "^5.0.3",
     "@octokit/action": "^3.18.1",
-    "csv-parse": "^5.2.0",
+    "csv-parse": "^5.2.2",
     "csv-string": "^4.1.0",
     "marked": "^4.0.17"
   },
