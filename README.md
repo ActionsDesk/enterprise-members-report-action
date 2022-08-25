@@ -44,7 +44,7 @@ jobs:
       id: report
       uses: ActionsDesk/enterprise-members-report-action@latest
       env:
-        // The default GITHUB_TOKEN from actions doesn't work here as it does not have enough permissions
+        # The default GITHUB_TOKEN from actions doesn't work here as it does not have enough permissions
         GITHUB_TOKEN: ${{ secrets.YOUR_SECRET_TOKEN }}
       with:
         enterprise: avocado-corp
